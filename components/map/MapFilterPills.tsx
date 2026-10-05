@@ -1,6 +1,8 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { ChevronDown, Check, X } from 'lucide-react';
-import { Report, IssueCategory, CATEGORIES_CONFIG, STATUS_OPTIONS } from '@/lib/types';
+'use client';
+
+import React, { useState, useRef, useEffect } from 'react';
+import { ChevronDown, SlidersHorizontal, Check, X } from 'lucide-react';
+import { Report, CATEGORIES_CONFIG, IssueCategory } from '@/lib/types';
 import MapTypeSwitch from './MapTypeSwitch';
 
 interface MapFilterPillsProps {
@@ -24,257 +26,179 @@ export default function MapFilterPills({
   mapType,
   onMapTypeChange,
 }: MapFilterPillsProps) {
-  const [isCategoryOpen, setIsCategoryOpen] = useState<boolean>(false);
-  const [isStatusOpen, setIsStatusOpen] = useState<boolean>(false);
-  const categoryRef = useRef<HTMLDivElement>(null);
-  const statusRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const isFilterActive = selectedCategory !== 'all' || selectedStatus !== 'all';
+  const activeCatConfig =
+    selectedCategory !== 'all'
+      ? CATEGORIES_CONFIG[selectedCategory as IssueCategory]
+      : null;
+
+  // Click outside to dismiss dropdown
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (categoryRef.current && !categoryRef.current.contains(e.target as Node)) {
-        setIsCategoryOpen(false);
-      }
-      if (statusRef.current && !statusRef.current.contains(e.target as Node)) {
-        setIsStatusOpen(false);
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
       }
     };
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsCategoryOpen(false);
-        setIsStatusOpen(false);
-      }
-    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
 
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('touchstart', handleClickOutside);
     };
-  }, []);
+  }, [isOpen]);
+
+  const handleReset = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSelectCategory('all');
+    onSelectStatus('all');
+    setIsOpen(false);
+  };
 
   return (
-    <div className="absolute top-3 sm:top-4 inset-x-3 sm:inset-x-4 z-20 pointer-events-none flex flex-wrap items-center justify-between gap-2">
-      {/* Left: Unified Filter Controls Pill */}
-      <div className="pointer-events-auto flex items-center gap-1 bg-white/95 backdrop-blur-xl border border-slate-200/80 shadow-md shadow-slate-900/5 p-1 rounded-full">
-        {/* Category Dropdown Pill */}
-        <div className="relative" ref={categoryRef}>
+    <div className="absolute top-2.5 sm:top-3 inset-x-2.5 sm:inset-x-4 z-20 pointer-events-auto flex items-center justify-between gap-2">
+      {/* Sisi Kiri: Dropdown Filter Kategori Compact */}
+      <div className="relative shrink-0 flex items-center gap-1.5" ref={dropdownRef}>
+        {/* Tombol Pemicu Dropdown */}
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className={`h-9 px-3 rounded-xl border shadow-md flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 focus-visible:outline-2 focus-visible:outline-blue-600 ${
+            selectedCategory === 'all'
+              ? 'bg-white/95 backdrop-blur-md border-slate-200/90 text-slate-800 hover:bg-slate-50 shadow-slate-900/5'
+              : 'bg-slate-900 border-slate-800 text-white shadow-slate-900/15'
+          }`}
+          aria-expanded={isOpen}
+          title="Filter Kategori Laporan"
+        >
+          {selectedCategory === 'all' ? (
+            <>
+              <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              <span className="truncate max-w-[115px] sm:max-w-none">Kategori</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-600 font-mono font-bold shrink-0">
+                {reports.length}
+              </span>
+            </>
+          ) : (
+            <>
+              <span
+                className="w-2 h-2 rounded-full shrink-0 animate-pulse"
+                style={{ backgroundColor: activeCatConfig?.colorHex }}
+              />
+              <span className="truncate max-w-[100px] sm:max-w-none">
+                {activeCatConfig?.name.split(' ')[0]}
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/20 text-white font-mono font-bold shrink-0">
+                {filteredCount}
+              </span>
+            </>
+          )}
+          <ChevronDown
+            className={`w-3.5 h-3.5 transition-transform duration-200 shrink-0 ${
+              selectedCategory === 'all' ? 'text-slate-400' : 'text-slate-300'
+            } ${isOpen ? 'rotate-180' : ''}`}
+          />
+        </button>
+
+        {/* Tombol Reset Cepat (Bila Filter Sedang Aktif) */}
+        {isFilterActive && (
           <button
             type="button"
-            onClick={() => {
-              setIsCategoryOpen(!isCategoryOpen);
-              setIsStatusOpen(false);
-            }}
-            className={`h-7 sm:h-7.5 px-3 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
-              selectedCategory !== 'all'
-                ? 'bg-blue-50 text-blue-700 font-semibold'
-                : 'text-slate-700 hover:bg-slate-100/70'
-            }`}
+            onClick={handleReset}
+            className="w-9 h-9 rounded-xl bg-white/95 backdrop-blur-md border border-slate-200/90 text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center shadow-md shadow-slate-900/5 transition-all active:scale-95"
+            title="Reset ke Semua Kategori"
+            aria-label="Reset ke Semua Kategori"
           >
-            <span
-              className="w-2 h-2 rounded-full inline-block shrink-0"
-              style={{
-                backgroundColor:
-                  selectedCategory === 'all'
-                    ? '#3b82f6'
-                    : CATEGORIES_CONFIG[selectedCategory as IssueCategory]?.colorHex || '#3b82f6',
-              }}
-            />
-            <span className="truncate max-w-24 sm:max-w-36">
-              {selectedCategory === 'all'
-                ? 'Semua Isu'
-                : CATEGORIES_CONFIG[selectedCategory as IssueCategory]?.name || selectedCategory}
-            </span>
-            <ChevronDown
-              className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-150 ${
-                isCategoryOpen ? 'rotate-180 text-blue-600' : ''
-              }`}
-            />
+            <X className="w-3.5 h-3.5" />
           </button>
+        )}
 
-          {/* Dropdown Menu Kategori */}
-          {isCategoryOpen && (
-            <div className="absolute top-full left-0 mt-2 w-60 sm:w-64 bg-white/98 backdrop-blur-md rounded-2xl border border-slate-200/80 shadow-xl shadow-slate-900/10 p-1.5 z-30 animate-in fade-in duration-100">
-              <div className="px-2.5 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                Kategori
-              </div>
+        {/* Menu Dropdown Mengambang dengan Animasi Spring */}
+        {isOpen && (
+          <div className="dropdown-spring-enter absolute top-full left-0 mt-2 w-60 sm:w-64 bg-white/95 backdrop-blur-xl border border-slate-200/90 shadow-[0_12px_36px_rgba(15,23,42,0.16)] rounded-2xl p-1.5 z-40">
+            <div className="px-2.5 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100/90 flex items-center justify-between">
+              <span>Pilih Kategori</span>
+              <span className="font-mono text-slate-500">{reports.length} Total</span>
+            </div>
 
-              {/* Option: Semua Isu */}
+            <div className="mt-1 space-y-0.5 max-h-64 overflow-y-auto pr-0.5 no-scrollbar">
+              {/* Pilihan: Semua Kategori */}
               <button
                 type="button"
                 onClick={() => {
                   onSelectCategory('all');
-                  setIsCategoryOpen(false);
+                  setIsOpen(false);
                 }}
-                className={`w-full px-2.5 py-1.5 rounded-xl text-left text-xs flex items-center justify-between transition-colors ${
+                className={`group w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150 active:scale-[0.98] ${
                   selectedCategory === 'all'
-                    ? 'bg-blue-50 font-semibold text-blue-700'
-                    : 'text-slate-600 hover:bg-slate-50'
+                    ? 'bg-blue-50 text-blue-700 font-bold shadow-xs'
+                    : 'text-slate-700 hover:bg-slate-100/90'
                 }`}
               >
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-blue-600 inline-block shrink-0" />
-                  <span>Semua Isu</span>
+                <div className="flex items-center gap-2 transition-transform duration-150 group-hover:translate-x-1">
+                  <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0 shadow-xs" />
+                  <span>Semua Kategori</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] text-slate-400">{reports.length}</span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-bold group-hover:bg-white transition-colors">
+                    {reports.length}
+                  </span>
                   {selectedCategory === 'all' && (
-                    <Check className="w-3.5 h-3.5 text-blue-600" />
+                    <Check className="w-3.5 h-3.5 text-blue-600 active-dot-pop shrink-0" />
                   )}
                 </div>
               </button>
 
-              <div className="my-1 border-t border-slate-100" />
-
-              {/* Individual Categories */}
-              <div className="max-h-60 overflow-y-auto space-y-0.5">
-                {Object.values(CATEGORIES_CONFIG).map((cat) => {
-                  const count = reports.filter((r) => r.category === cat.id).length;
-                  const isSelected = selectedCategory === cat.id;
-
-                  return (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => {
-                        onSelectCategory(cat.id);
-                        setIsCategoryOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-1.5 rounded-xl text-left text-xs flex items-center justify-between transition-colors ${
-                        isSelected
-                          ? 'bg-slate-100 font-semibold text-slate-900'
-                          : 'text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate mr-2">
-                        <span
-                          className="w-2 h-2 rounded-full inline-block shrink-0"
-                          style={{ backgroundColor: cat.colorHex }}
-                        />
-                        <span className="truncate">{cat.name}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[10px] text-slate-400">{count}</span>
-                        {isSelected && <Check className="w-3.5 h-3.5 text-slate-900" />}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+              {/* Pilihan per Kategori */}
+              {Object.values(CATEGORIES_CONFIG).map((cat) => {
+                const isSelected = selectedCategory === cat.id;
+                const count = reports.filter((r) => r.category === cat.id).length;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => {
+                      onSelectCategory(cat.id);
+                      setIsOpen(false);
+                    }}
+                    className={`group w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150 active:scale-[0.98] ${
+                      isSelected
+                        ? 'bg-blue-50 text-blue-700 font-bold shadow-xs'
+                        : 'text-slate-700 hover:bg-slate-100/90'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 transition-transform duration-150 group-hover:translate-x-1">
+                      <span
+                        className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs"
+                        style={{ backgroundColor: cat.colorHex }}
+                      />
+                      <span>{cat.name}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-bold group-hover:bg-white transition-colors">
+                        {count}
+                      </span>
+                      {isSelected && (
+                        <Check className="w-3.5 h-3.5 text-blue-600 active-dot-pop shrink-0" />
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
-          )}
-        </div>
-
-        <span className="w-px h-4 bg-slate-200" />
-
-        {/* Status Dropdown Pill */}
-        <div className="relative" ref={statusRef}>
-          <button
-            type="button"
-            onClick={() => {
-              setIsStatusOpen(!isStatusOpen);
-              setIsCategoryOpen(false);
-            }}
-            className={`h-7 sm:h-7.5 px-3 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
-              selectedStatus !== 'all'
-                ? 'bg-blue-50 text-blue-700 font-semibold'
-                : 'text-slate-700 hover:bg-slate-100/70'
-            }`}
-          >
-            {selectedStatus !== 'all' && (
-              <span
-                className={`w-2 h-2 rounded-full inline-block shrink-0 ${
-                  STATUS_OPTIONS.find((s) => s.id === selectedStatus)?.dotClass || 'bg-slate-400'
-                }`}
-              />
-            )}
-            <span className="truncate max-w-24 sm:max-w-32">
-              {selectedStatus === 'all'
-                ? 'Semua Status'
-                : STATUS_OPTIONS.find((s) => s.id === selectedStatus)?.label || selectedStatus}
-            </span>
-            <ChevronDown
-              className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-150 ${
-                isStatusOpen ? 'rotate-180 text-blue-600' : ''
-              }`}
-            />
-          </button>
-
-          {/* Dropdown Menu Status */}
-          {isStatusOpen && (
-            <div className="absolute top-full left-0 mt-2 w-52 sm:w-56 bg-white/98 backdrop-blur-md rounded-2xl border border-slate-200/80 shadow-xl shadow-slate-900/10 p-1.5 z-30 animate-in fade-in duration-100">
-              <div className="px-2.5 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                Status
-              </div>
-
-              <div className="space-y-0.5">
-                {STATUS_OPTIONS.map((opt) => {
-                  const isSelected = selectedStatus === opt.id;
-                  const count =
-                    opt.id === 'all'
-                      ? reports.length
-                      : reports.filter((r) => r.status === opt.id).length;
-
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => {
-                        onSelectStatus(opt.id);
-                        setIsStatusOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-1.5 rounded-xl text-left text-xs flex items-center justify-between transition-colors ${
-                        isSelected
-                          ? 'bg-slate-100 font-semibold text-slate-900'
-                          : 'text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate mr-2">
-                        <span className={`w-2 h-2 rounded-full inline-block shrink-0 ${opt.dotClass}`} />
-                        <span className="truncate">{opt.label}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[10px] text-slate-400">{count}</span>
-                        {isSelected && <Check className="w-3.5 h-3.5 text-slate-900" />}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Minimalist Reset Button */}
-        {(selectedCategory !== 'all' || selectedStatus !== 'all') && (
-          <button
-            type="button"
-            onClick={() => {
-              onSelectCategory('all');
-              onSelectStatus('all');
-            }}
-            className="h-7 px-2 rounded-full text-[11px] font-semibold text-rose-600 hover:bg-rose-50 transition-colors flex items-center gap-0.5"
-            title="Reset Filter"
-          >
-            <X className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Reset</span>
-          </button>
+          </div>
         )}
       </div>
 
-      {/* Right: Unified Map View & Live Counter Pill */}
-      <div className="pointer-events-auto flex items-center gap-1.5 bg-white/95 backdrop-blur-xl border border-slate-200/80 shadow-md shadow-slate-900/5 p-1 rounded-full">
+      {/* Sisi Kanan: Map Type Switch (Jalan / Satelit) */}
+      <div className="shrink-0 bg-white/95 backdrop-blur-md p-0.5 rounded-xl border border-slate-200/90 shadow-md shadow-slate-900/5 transition-transform active:scale-95">
         <MapTypeSwitch mapType={mapType} onChange={onMapTypeChange} />
-
-        <div className="px-2.5 py-1 text-xs text-slate-600 flex items-center gap-1.5 font-medium">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-          <span className="font-semibold text-slate-800">{filteredCount}</span>
-          <span className="text-slate-400 hidden sm:inline">Laporan</span>
-        </div>
       </div>
     </div>
   );

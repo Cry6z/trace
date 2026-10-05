@@ -15,6 +15,10 @@
   --border-clean: #e2e8f0;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background-color: #f8fafc;
   color: #0f172a;
@@ -81,26 +85,63 @@ body {
   color: #2563eb !important;
 }
 
-/* Custom Marker Pin Animation */
-@keyframes markerPulse {
+/* Presisi Sonar Ripple Animation untuk Marker Peta */
+@keyframes markerSonarPulse {
   0% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6);
+    transform: scale(0.96);
+    opacity: 0.9;
+    border-width: 2px;
   }
-
-  70% {
-    transform: scale(1);
-    box-shadow: 0 0 0 14px rgba(239, 68, 68, 0);
+  50% {
+    opacity: 0.4;
   }
-
   100% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    transform: scale(1.85);
+    opacity: 0;
+    border-width: 1px;
   }
 }
 
+@keyframes markerSoftGlow {
+  0%, 100% {
+    transform: scale(0.95);
+    opacity: 0.2;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.45;
+  }
+}
+
+.trace-sonar-wave {
+  position: absolute;
+  top: 0;
+  left: 2px;
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  pointer-events: none;
+  border-style: solid;
+  animation: markerSonarPulse 2.4s cubic-bezier(0.15, 0.7, 0.3, 1) infinite;
+}
+
+.trace-sonar-wave-delayed {
+  animation-delay: 1.2s;
+}
+
+.trace-sonar-soft-glow {
+  position: absolute;
+  top: 0;
+  left: 2px;
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  pointer-events: none;
+  animation: markerSoftGlow 2.4s ease-in-out infinite;
+}
+
 .trace-marker-pulse {
-  animation: markerPulse 2s infinite;
+  animation: markerSonarPulse 2.4s cubic-bezier(0.15, 0.7, 0.3, 1) infinite;
 }
 
 /* Custom Leaflet Popup Styling */
@@ -141,4 +182,109 @@ body {
 .leaflet-popup-close-button:hover {
   background: #ffffff !important;
   color: #0f172a !important;
+}
+
+/* Page Transition Animation */
+@keyframes pageEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-transition {
+  animation: pageEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, transform;
+}
+
+/* Dropdown Spring Entrance */
+@keyframes dropdownSpringEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.dropdown-spring-enter {
+  animation: dropdownSpringEnter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: top left;
+  will-change: transform, opacity;
+}
+
+/* Floating Card Slide Up */
+@keyframes cardSlideUp {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 14px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+.card-slide-up {
+  animation: cardSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+/* Active Dot Pop */
+@keyframes activeDotPop {
+  0% {
+    transform: translate(-50%, 0) scale(0);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 1;
+  }
+}
+
+.active-dot-pop {
+  animation: activeDotPop 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Card Hover Lift */
+.card-hover-lift {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+  will-change: transform;
+}
+
+.card-hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px -6px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
+}
+
+/* Shake Animation for Invalid Inputs / OTP Errors */
+@keyframes shakeError {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.animate-shake {
+  animation: shakeError 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* Subtle Breathing Pulse */
+@keyframes pulseSubtle {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.9; }
+}
+
+.animate-pulse-subtle {
+  animation: pulseSubtle 3s ease-in-out infinite;
+}
+
+/* Spring transition timing utility */
+.ease-spring {
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }

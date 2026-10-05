@@ -107,10 +107,10 @@ export default function LiveActivityTicker({ onSelectReportId }: LiveActivityTic
     <div
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      className="w-full bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-2xl shadow-sm p-2 sm:p-2.5 flex items-center justify-between gap-3 text-xs transition-all hover:border-blue-200 hover:shadow-md"
+      className="w-full bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-2xl shadow-sm p-2 sm:p-2.5 flex items-center justify-between gap-2.5 sm:gap-3 text-xs transition-all hover:border-blue-200 hover:shadow-md"
     >
       {/* Left Badge: Live Ticker Indicator */}
-      <div className="flex items-center gap-2 shrink-0 pl-1 sm:pl-2">
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 pl-1 sm:pl-2">
         <span className="relative flex h-2.5 w-2.5">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
           <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
@@ -124,57 +124,68 @@ export default function LiveActivityTicker({ onSelectReportId }: LiveActivityTic
       {/* Center Event Text (Animated) */}
       <div
         key={current.id}
+        tabIndex={0}
+        role="button"
+        aria-label={`Buka laporan ${current.trackingCode}`}
         onClick={() => {
           if (current.reportId && onSelectReportId) {
             onSelectReportId(current.reportId);
           }
         }}
-        className="flex-1 min-w-0 flex items-center gap-2 cursor-pointer group animate-in fade-in slide-in-from-right-3 duration-300"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (current.reportId && onSelectReportId) {
+              onSelectReportId(current.reportId);
+            }
+          }
+        }}
+        className="flex-1 min-w-0 flex items-center gap-1.5 sm:gap-2 cursor-pointer group animate-in fade-in slide-in-from-right-3 duration-300 focus-visible:outline-2 focus-visible:outline-blue-600 rounded-lg p-1"
       >
         <span
           className="w-1.5 h-1.5 rounded-full shrink-0"
           style={{ backgroundColor: current.categoryColor }}
         />
-        <span className="font-mono text-[11px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded shrink-0">
+        <span className="font-mono text-[10px] sm:text-[11px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded shrink-0">
           {current.trackingCode}
         </span>
         <span className="font-semibold text-slate-800 shrink-0 hidden md:inline">
           {current.agencyOrActor}:
         </span>
-        <span className="text-slate-600 truncate group-hover:text-blue-700 transition-colors">
+        <span className="text-slate-600 truncate group-hover:text-blue-700 transition-colors text-xs">
           {current.actionText}
         </span>
         <span className="text-slate-400 shrink-0 text-[11px] hidden lg:inline">
           ({current.location})
         </span>
-        <span className="text-[10px] font-medium text-slate-400 bg-slate-50 border border-slate-200/60 px-1.5 py-0.5 rounded-full shrink-0">
+        <span className="text-[10px] font-medium text-slate-400 bg-slate-50 border border-slate-200/60 px-1.5 py-0.5 rounded-full shrink-0 hidden xs:inline">
           {current.timeAgo}
         </span>
         <ArrowRight className="w-3.5 h-3.5 text-slate-400 opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0 transition-all shrink-0 hidden sm:inline" />
       </div>
 
-      {/* Right Controls: Previous / Next Carousel Buttons */}
-      <div className="flex items-center gap-1 shrink-0 pr-1">
+      {/* Right Controls: Previous / Next Carousel Buttons with 44px hitboxes */}
+      <div className="flex items-center gap-0.5 shrink-0 pr-0.5">
         <button
           type="button"
           onClick={handlePrev}
-          className="w-6 h-6 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors"
+          className="w-8 h-8 sm:w-8 sm:h-8 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-colors focus-visible:outline-2 focus-visible:outline-blue-600 active:scale-95"
           title="Aktivitas Sebelumnya"
-          aria-label="Sebelumnya"
+          aria-label="Aktivitas Sebelumnya"
         >
-          <ChevronLeft className="w-3.5 h-3.5" />
+          <ChevronLeft className="w-4 h-4" />
         </button>
-        <span className="text-[10px] font-medium text-slate-400 select-none">
+        <span className="text-[10px] font-medium text-slate-400 select-none px-0.5">
           {currentIndex + 1}/{LIVE_EVENTS.length}
         </span>
         <button
           type="button"
           onClick={handleNext}
-          className="w-6 h-6 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors"
+          className="w-8 h-8 sm:w-8 sm:h-8 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-colors focus-visible:outline-2 focus-visible:outline-blue-600 active:scale-95"
           title="Aktivitas Selanjutnya"
-          aria-label="Selanjutnya"
+          aria-label="Aktivitas Selanjutnya"
         >
-          <ChevronRight className="w-3.5 h-3.5" />
+          <ChevronRight className="w-4 h-4" />
         </button>
       </div>
     </div>

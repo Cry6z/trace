@@ -82,7 +82,7 @@ export default function FullPetaPage() {
       <div className="flex-1 flex relative overflow-hidden">
         {/* Left Sidebar: Report List or Full Detail */}
         <aside
-          className={`w-full md:w-110 lg:w-120 bg-white border-r border-slate-200/80 flex flex-col z-20 shrink-0 transition-transform ${
+          className={`w-full md:w-[420px] lg:w-[460px] bg-white border-r border-slate-200/80 flex flex-col z-20 shrink-0 transition-transform ${
             mobileTab === 'sidebar' ? 'flex' : 'hidden md:flex'
           }`}
         >

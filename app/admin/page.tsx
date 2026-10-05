@@ -8,10 +8,14 @@ import AdminStatsCards from '@/components/admin/AdminStatsCards';
 import AdminFilterBar from '@/components/admin/AdminFilterBar';
 import AdminReportsTable from '@/components/admin/AdminReportsTable';
 import AdminActionModal from '@/components/admin/AdminActionModal';
+import AdminLoginForm, { OfficerProfile } from '@/components/admin/AdminLoginForm';
 import { INITIAL_REPORTS } from '@/lib/mockData';
 import { Report, ReportStatus } from '@/lib/types';
 
 export default function AdminDashboardPage() {
+  const [officer, setOfficer] = useState<OfficerProfile | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(true);
+
   const [reports, setReports] = useState<Report[]>(INITIAL_REPORTS);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [detailModalReport, setDetailModalReport] = useState<Report | null>(null);
@@ -23,13 +27,32 @@ export default function AdminDashboardPage() {
 
   // Action Form States inside Admin modal
   const [actionStatus, setActionStatus] = useState<ReportStatus>('in_progress');
-  const [actionAgency, setActionAgency] = useState<string>('Dinas Lingkungan Hidup');
+  const [actionAgency, setActionAgency] = useState<string>('Dinas Pekerjaan Umum & Penataan Ruang (PUPR)');
   const [actionNote, setActionNote] = useState<string>('');
   const [actionEvidenceUrl, setActionEvidenceUrl] = useState<string>(
     'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f6?auto=format&fit=crop&w=800&q=80'
   );
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [updateSuccess, setUpdateSuccess] = useState<boolean>(false);
+
+  // Cek sesi login petugas dinas
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const storedOfficer = sessionStorage.getItem('trace_admin_officer');
+        if (storedOfficer) {
+          const parsed = JSON.parse(storedOfficer);
+          if (parsed?.nip) {
+            setOfficer(parsed);
+            setActionAgency(parsed.instansi || 'Dinas Pekerjaan Umum & Penataan Ruang (PUPR)');
+          }
+        }
+      } catch {
+        // ignore
+      }
+      setIsCheckingAuth(false);
+    }
+  }, []);
 
   // Load custom reports if any
   useEffect(() => {
@@ -48,6 +71,21 @@ export default function AdminDashboardPage() {
       }
     }
   }, []);
+
+  const handleLoginSuccess = (profile: OfficerProfile) => {
+    setOfficer(profile);
+    setActionAgency(profile.instansi);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('trace_admin_officer', JSON.stringify(profile));
+    }
+  };
+
+  const handleLogout = () => {
+    setOfficer(null);
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('trace_admin_officer');
+    }
+  };
 
   const filteredReports = reports.filter((r) => {
     const matchStatus = statusFilter === 'all' || r.status === statusFilter;
@@ -68,7 +106,7 @@ export default function AdminDashboardPage() {
   const handleOpenActionModal = (report: Report) => {
     setSelectedReport(report);
     setActionStatus(report.status === 'pending' ? 'in_progress' : report.status);
-    setActionAgency(report.assignedAgency || 'Dinas Bina Marga');
+    setActionAgency(officer?.instansi || report.assignedAgency || 'Dinas Pekerjaan Umum & Penataan Ruang (PUPR)');
     setActionNote('');
     setUpdateSuccess(false);
   };
@@ -87,6 +125,8 @@ export default function AdminDashboardPage() {
       minute: '2-digit',
     });
 
+    const officerActorName = officer ? `${officer.nama} (${officer.instansi.split(' ')[0]} ${officer.instansi.split(' ')[1] || ''})` : actionAgency;
+
     const newTimelineEvent = {
       id: `tl-${Date.now()}`,
       date: nowFormatted,
@@ -102,7 +142,7 @@ export default function AdminDashboardPage() {
         (actionStatus === 'resolved'
           ? 'Masalah telah diselesaikan tuntas oleh tim dinas.'
           : 'Sedang dalam penanganan petugas lapangan.'),
-      actor: actionAgency || 'Petugas Verifikator TRACE',
+      actor: officerActorName,
       evidenceUrl: actionStatus === 'resolved' ? actionEvidenceUrl : undefined,
     };
 
@@ -132,13 +172,26 @@ export default function AdminDashboardPage() {
     }, 600);
   };
 
+  // Jika belum login sebagai petugas dinas, tampilkan layar login petugas aman
+  if (!isCheckingAuth && !officer) {
+    return <AdminLoginForm onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400 text-xs font-mono">
+        Memeriksa otorisasi petugas dinas...
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Navbar />
 
-      <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full space-y-6">
-        {/* Header Admin */}
-        <AdminHeader />
+      <main className="flex-1 pt-6 pb-28 md:py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full space-y-6">
+        {/* Header Admin dengan Info Akun Petugas */}
+        {officer && <AdminHeader officer={officer} onLogout={handleLogout} />}
 
         {/* Counter Stats Admin */}
         <AdminStatsCards
@@ -157,19 +210,22 @@ export default function AdminDashboardPage() {
           onCategoryChange={setCategoryFilter}
         />
 
-        {/* Table Laporan Admin */}
+        {/* Table List of Reports */}
         <AdminReportsTable
           reports={filteredReports}
-          onViewDetail={(rep) => setDetailModalReport(rep)}
           onOpenAction={handleOpenActionModal}
+          onViewDetail={(r: Report) => setDetailModalReport(r)}
         />
       </main>
 
-      {/* Modal Tindak Lanjut Admin */}
+      {/* Modal Eksekusi & Update Status oleh Petugas */}
       {selectedReport && (
         <AdminActionModal
           report={selectedReport}
           onClose={() => setSelectedReport(null)}
+          onSubmit={handleSaveAction}
+          isUpdating={isUpdating}
+          updateSuccess={updateSuccess}
           actionStatus={actionStatus}
           onStatusChange={setActionStatus}
           actionAgency={actionAgency}
@@ -178,13 +234,10 @@ export default function AdminDashboardPage() {
           onNoteChange={setActionNote}
           actionEvidenceUrl={actionEvidenceUrl}
           onEvidenceUrlChange={setActionEvidenceUrl}
-          isUpdating={isUpdating}
-          updateSuccess={updateSuccess}
-          onSubmit={handleSaveAction}
         />
       )}
 
-      {/* Detail Modal */}
+      {/* Modal Detail Laporan */}
       <ReportDetailModal
         report={detailModalReport}
         onClose={() => setDetailModalReport(null)}

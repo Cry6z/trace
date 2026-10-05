@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/ToastProvider";
+import MobileBottomNav from "@/components/ui/MobileBottomNav";
+import PageProgressBar from "@/components/ui/PageProgressBar";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-sans",
@@ -36,7 +38,11 @@ export default function RootLayout({
   return (
     <html lang="id" className={`${plusJakartaSans.variable} ${jetbrainsMono.variable}`}>
       <body className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased selection:bg-blue-100 selection:text-blue-900">
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          <PageProgressBar />
+          {children}
+          <MobileBottomNav />
+        </ToastProvider>
       </body>
     </html>
   );

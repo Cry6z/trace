@@ -17,8 +17,16 @@ export default function PetaReportCard({
 }: PetaReportCardProps) {
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={() => onSelect(report)}
-      className={`pt-3 first:pt-0 cursor-pointer rounded-2xl p-3 transition-all ${
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(report);
+        }
+      }}
+      className={`pt-3 first:pt-0 cursor-pointer rounded-2xl p-3 transition-all focus-visible:outline-2 focus-visible:outline-blue-600 focus-visible:outline-offset-1 ${
         isSelected
           ? 'bg-blue-50/70 border border-blue-200 shadow-2xs'
           : 'hover:bg-slate-50 border border-transparent'

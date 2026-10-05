@@ -5,6 +5,7 @@ import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import CommunityMap from '@/components/map/CommunityMap';
 import ReportDetailModal from '@/components/ui/ReportDetailModal';
+import FloatingQuickReportFAB from '@/components/ui/FloatingQuickReportFAB';
 import HeroSection from '@/components/landing/HeroSection';
 import FeaturedReportsSection from '@/components/landing/FeaturedReportsSection';
 import HowItWorksSection from '@/components/landing/HowItWorksSection';
@@ -32,8 +33,8 @@ export default function HomePage() {
       {/* Main Content Body */}
       <main className="flex-1">
         {/* HERO + PETA KOMUNITAS (Side-by-Side Split Hero Layout) */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-14">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 xl:gap-12 items-center">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 lg:py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-10 xl:gap-12 items-center">
             
             {/* Left Column: Hero Content & Call to Actions */}
             <div className="lg:col-span-5 xl:col-span-5 flex flex-col justify-center">
@@ -43,11 +44,11 @@ export default function HomePage() {
             {/* Right Column: GIS Community Map */}
             <div className="lg:col-span-7 xl:col-span-7 flex flex-col">
               {/* Community Map Component */}
-              <div className="w-full h-115 sm:h-125 lg:h-135 xl:h-140">
+              <div className="w-full h-[390px] sm:h-[460px] lg:h-[520px] xl:h-[540px]">
                 <CommunityMap 
                   reports={reports} 
                   onSelectReport={(rep) => setActiveReportModal(rep)}
-                  className="h-full w-full min-h-[460px] sm:min-h-[500px] lg:min-h-[530px]"
+                  className="h-full w-full min-h-[360px] sm:min-h-[440px] lg:min-h-[480px]"
                 />
               </div>
             </div>
@@ -68,6 +69,9 @@ export default function HomePage() {
         {/* 4. Keamanan NIK & Privasi Warga */}
         <SecuritySection />
       </main>
+
+      {/* Floating Action Button (Quick Report on scroll) */}
+      <FloatingQuickReportFAB />
 
       {/* Footer */}
       <Footer />

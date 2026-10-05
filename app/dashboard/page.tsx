@@ -73,7 +73,7 @@ export default function UserDashboardPage() {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Navbar />
 
-      <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full space-y-8">
+      <main className="flex-1 pt-6 pb-28 md:py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full space-y-6 sm:space-y-8">
         {/* Top Profile Banner */}
         <UserProfileBanner
           nama={userInfo.nama}

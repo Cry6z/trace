@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Report, ReportStatus } from '@/lib/types';
 import { X, CheckCircle2 } from 'lucide-react';
 
@@ -33,25 +33,51 @@ export default function AdminActionModal({
   updateSuccess,
   onSubmit,
 }: AdminActionModalProps) {
+  // Escape key and scroll lock
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-      <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 space-y-5">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="admin-action-title"
+      className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="relative w-full max-w-lg bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-100 p-5 sm:p-6 space-y-5 max-h-[90vh] overflow-y-auto">
         {/* Modal Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div>
             <span className="text-xs font-mono font-bold text-blue-600">
               {report.trackingCode}
             </span>
-            <h3 className="font-extrabold text-base text-slate-900">
+            <h3 id="admin-action-title" className="font-extrabold text-base text-slate-900">
               Tindak Lanjut & Update Status
             </h3>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-colors"
+            aria-label="Tutup modal"
+            className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-colors focus-visible:outline-2 focus-visible:outline-blue-600"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -68,14 +94,14 @@ export default function AdminActionModal({
             <label className="block text-xs font-bold uppercase tracking-wide text-slate-700 mb-1.5">
               Update Status Penanganan
             </label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => onStatusChange('pending')}
-                className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all ${
+                className={`min-h-11 py-2 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center focus-visible:outline-2 focus-visible:outline-amber-600 ${
                   actionStatus === 'pending'
                     ? 'border-amber-500 bg-amber-50 text-amber-800 shadow-2xs'
-                    : 'border-slate-200 text-slate-600'
+                    : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                 }`}
               >
                 Pending Verifikasi
@@ -83,10 +109,10 @@ export default function AdminActionModal({
               <button
                 type="button"
                 onClick={() => onStatusChange('in_progress')}
-                className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all ${
+                className={`min-h-11 py-2 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center focus-visible:outline-2 focus-visible:outline-blue-600 ${
                   actionStatus === 'in_progress'
                     ? 'border-blue-500 bg-blue-50 text-blue-800 shadow-2xs'
-                    : 'border-slate-200 text-slate-600'
+                    : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                 }`}
               >
                 Sedang Dikerjakan
@@ -94,10 +120,10 @@ export default function AdminActionModal({
               <button
                 type="button"
                 onClick={() => onStatusChange('resolved')}
-                className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all ${
+                className={`min-h-11 py-2 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center focus-visible:outline-2 focus-visible:outline-emerald-600 ${
                   actionStatus === 'resolved'
                     ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-2xs'
-                    : 'border-slate-200 text-slate-600'
+                    : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                 }`}
               >
                 Tuntas Selesai
@@ -113,7 +139,7 @@ export default function AdminActionModal({
             <select
               value={actionAgency}
               onChange={(e) => onAgencyChange(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800 outline-none focus:bg-white"
+              className="w-full min-h-11 px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500"
             >
               <option value="Dinas Bina Marga Provinsi">Dinas Bina Marga (Jalan & Jembatan)</option>
               <option value="Dinas Lingkungan Hidup (DLH)">Dinas Lingkungan Hidup (Sampah & Kebersihan)</option>
@@ -134,7 +160,7 @@ export default function AdminActionModal({
               placeholder="Contoh: Regu 2 Satgas Bina Marga telah diterjunkan untuk pengaspalan darurat..."
               value={actionNote}
               onChange={(e) => onNoteChange(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+              className="w-full min-h-[84px] p-3 rounded-xl border border-slate-200 text-base sm:text-xs focus:ring-2 focus:ring-blue-500 outline-none resize-none"
             />
           </div>
 
@@ -149,9 +175,9 @@ export default function AdminActionModal({
                 value={actionEvidenceUrl}
                 onChange={(e) => onEvidenceUrlChange(e.target.value)}
                 placeholder="https://..."
-                className="w-full px-3 py-1.5 rounded-xl border border-emerald-300 bg-white text-xs outline-none"
+                className="w-full min-h-11 px-3 py-2 rounded-xl border border-emerald-300 bg-white text-base sm:text-xs outline-none focus:ring-2 focus:ring-emerald-500"
               />
-              <div className="w-full h-24 rounded-lg overflow-hidden border border-emerald-300">
+              <div className="w-full h-28 rounded-lg overflow-hidden border border-emerald-300">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={actionEvidenceUrl}
@@ -163,18 +189,18 @@ export default function AdminActionModal({
           )}
 
           {/* Submit Action */}
-          <div className="pt-2 flex items-center justify-end gap-2">
+          <div className="pt-2 flex items-center justify-end gap-2.5">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100"
+              className="min-h-11 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 active:scale-95 transition-all focus-visible:outline-2 focus-visible:outline-slate-400"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={isUpdating}
-              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 active:scale-95 disabled:opacity-50"
+              className="min-h-11 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 active:scale-95 disabled:opacity-50 transition-all focus-visible:outline-2 focus-visible:outline-blue-600 flex items-center justify-center"
             >
               {isUpdating ? 'Menyimpan...' : 'Simpan Pembaruan'}
             </button>
