@@ -73,7 +73,7 @@ export default function PetaReportDetail({
         <button
           type="button"
           onClick={handleCopyCode}
-          className="flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-xl hover:bg-slate-100 transition-colors group shrink-0 active:scale-95 focus-visible:outline-2 focus-visible:outline-blue-600"
+          className="flex items-center gap-1.5 px-3 py-2 min-h-10 rounded-xl hover:bg-slate-100 transition-colors group shrink-0 active:scale-95 focus-visible:outline-2 focus-visible:outline-blue-600"
           title="Salin Kode Tiket"
         >
           <span
@@ -183,7 +183,7 @@ export default function PetaReportDetail({
 
           <div className="p-3 rounded-xl border border-emerald-100 bg-emerald-50/40">
             <div className="text-[10px] text-emerald-600 font-semibold uppercase">
-              Proteksi NIK (UU PDP)
+              Verifikasi NIK Terdata
             </div>
             <div className="font-mono text-emerald-900 font-medium mt-0.5 truncate">
               {report.reporterNikMasked || '3171**********12'}

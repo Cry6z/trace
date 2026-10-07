@@ -5,11 +5,9 @@ import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import CommunityMap from '@/components/map/CommunityMap';
 import ReportDetailModal from '@/components/ui/ReportDetailModal';
-import FloatingQuickReportFAB from '@/components/ui/FloatingQuickReportFAB';
 import HeroSection from '@/components/landing/HeroSection';
 import FeaturedReportsSection from '@/components/landing/FeaturedReportsSection';
 import HowItWorksSection from '@/components/landing/HowItWorksSection';
-import SecuritySection from '@/components/landing/SecuritySection';
 import { INITIAL_REPORTS } from '@/lib/mockData';
 import { Report } from '@/lib/types';
 
@@ -44,11 +42,11 @@ export default function HomePage() {
             {/* Right Column: GIS Community Map */}
             <div className="lg:col-span-7 xl:col-span-7 flex flex-col">
               {/* Community Map Component */}
-              <div className="w-full h-[390px] sm:h-[460px] lg:h-[520px] xl:h-[540px]">
+              <div className="w-full h-97.5 sm:h-115 lg:h-130 xl:h-135">
                 <CommunityMap 
                   reports={reports} 
                   onSelectReport={(rep) => setActiveReportModal(rep)}
-                  className="h-full w-full min-h-[360px] sm:min-h-[440px] lg:min-h-[480px]"
+                  className="h-full w-full min-h-90 sm:min-h-110 lg:min-h-120"
                 />
               </div>
             </div>
@@ -65,13 +63,7 @@ export default function HomePage() {
 
         {/* 3. Cara Kerja & Alur Pelaporan */}
         <HowItWorksSection />
-
-        {/* 4. Keamanan NIK & Privasi Warga */}
-        <SecuritySection />
       </main>
-
-      {/* Floating Action Button (Quick Report on scroll) */}
-      <FloatingQuickReportFAB />
 
       {/* Footer */}
       <Footer />

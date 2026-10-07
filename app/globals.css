@@ -40,6 +40,29 @@ body {
   scrollbar-width: none !important;
 }
 
+/* Custom Sleek Minimal Scrollbar for Modals */
+.modal-scroll-area {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.modal-scroll-area::-webkit-scrollbar {
+  width: 5px;
+}
+
+.modal-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-scroll-area::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+.modal-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
 /* Custom Leaflet Map Styling for Minimalist Clean Look */
 .leaflet-container {
   width: 100%;
@@ -233,6 +256,53 @@ body {
 
 .card-slide-up {
   animation: cardSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+/* Modal Smooth Center Entrance & Backdrop */
+@keyframes modalBackdropFade {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes modalCenterPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.93) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-backdrop-animate {
+  animation: modalBackdropFade 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.modal-center-animate {
+  animation: modalCenterPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+/* Modal Pure Scale Spring Pop (ideal for fixed inset-0 m-auto cards) */
+@keyframes modalSpringPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modal-spring-animate {
+  animation: modalSpringPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   will-change: transform, opacity;
 }
 

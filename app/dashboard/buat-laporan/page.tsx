@@ -1,20 +1,38 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/ui/Navbar';
+import Footer from '@/components/ui/Footer';
 import CategorySelector from '@/components/buat-laporan/CategorySelector';
 import LocationStep from '@/components/buat-laporan/LocationStep';
 import ReportDetailsStep from '@/components/buat-laporan/ReportDetailsStep';
 import UrgencySelector from '@/components/buat-laporan/UrgencySelector';
 import { IssueCategory, UrgencyLevel, Report } from '@/lib/types';
-import { ArrowLeft, ArrowRight, ShieldCheck, CheckCircle2, MapPin, Tag, FileText, Check } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  ArrowRight, 
+  ShieldCheck, 
+  CheckCircle2, 
+  MapPin, 
+  Tag, 
+  FileText, 
+  Check, 
+  Lock, 
+  LogIn, 
+  UserPlus, 
+  AlertCircle 
+} from 'lucide-react';
 import { useToast } from '@/components/ui/ToastProvider';
+import { getUserSession, UserSession, AUTH_CHANGE_EVENT } from '@/lib/auth';
 
 export default function BuatLaporanPage() {
   const router = useRouter();
   const { toast } = useToast();
+
+  const [userSession, setUserSession] = useState<UserSession | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(true);
 
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [category, setCategory] = useState<IssueCategory>('jalan');
@@ -22,8 +40,9 @@ export default function BuatLaporanPage() {
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [address, setAddress] = useState<string>('');
-  const [village, setVillage] = useState<string>('');
-  const [district, setDistrict] = useState<string>('');
+  const [village, setVillage] = useState<string>('Lempuing');
+  const [district, setDistrict] = useState<string>('Ratu Samban');
+  const [isAnonymous, setIsAnonymous] = useState<boolean>(true);
   const [imagePreview, setImagePreview] = useState<string>(
     'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80'
   );
@@ -34,6 +53,29 @@ export default function BuatLaporanPage() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
+  // Periksa sesi aktif
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const syncSession = () => {
+        const session = getUserSession();
+        setUserSession(session);
+        if (session?.kecamatan) setDistrict(session.kecamatan);
+        if (session?.kelurahan) setVillage(session.kelurahan);
+        setIsCheckingAuth(false);
+      };
+
+      syncSession();
+
+      window.addEventListener(AUTH_CHANGE_EVENT, syncSession);
+      window.addEventListener('storage', syncSession);
+
+      return () => {
+        window.removeEventListener(AUTH_CHANGE_EVENT, syncSession);
+        window.removeEventListener('storage', syncSession);
+      };
+    }
+  }, []);
+
   // Handle Foto Demo
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -42,7 +84,7 @@ export default function BuatLaporanPage() {
       reader.onload = () => {
         if (typeof reader.result === 'string') {
           setImagePreview(reader.result);
-          toast.success('Foto Berhasil Dipilih!', 'Pratinjau gambar diperbarui.');
+          toast.success('Foto Berhasil Dipilih!', 'Pratinjau gambar bukti diperbarui.');
         }
       };
       reader.readAsDataURL(file);
@@ -70,6 +112,11 @@ export default function BuatLaporanPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!userSession) {
+      toast.error('Masuk Diperlukan', 'Anda wajib masuk ke akun warga sebelum mengirim laporan.');
+      return;
+    }
+
     if (!title.trim()) {
       toast.error('Judul Laporan Kosong', 'Mohon tulis judul ringkas masalah Anda.');
       return;
@@ -79,6 +126,11 @@ export default function BuatLaporanPage() {
 
     const trackingNumber = Math.floor(1000 + Math.random() * 9000);
     const trackingCode = `TRC-2026-${trackingNumber}`;
+
+    // Gunakan identitas akun aktif yang terverifikasi
+    const citizenAlias = isAnonymous
+      ? `Warga #${userSession.id ? userSession.id.slice(-4) : trackingNumber}`
+      : userSession.nama;
 
     const newReport: Report = {
       id: `rep-${Date.now()}`,
@@ -90,12 +142,13 @@ export default function BuatLaporanPage() {
       urgency,
       latitude: coords.lat,
       longitude: coords.lng,
-      address: address || 'Lokasi Terpetakan GPS',
-      village: village || 'Lempuing',
-      district: district || 'Ratu Agung',
+      address: address || 'Lokasi Terpetakan GPS Kota Bengkulu',
+      village: village || userSession.kelurahan || 'Lempuing',
+      district: district || userSession.kecamatan || 'Ratu Samban',
       imageUrl: imagePreview,
-      reporterAlias: 'Warga #3921 (Anda)',
-      reporterNikMasked: '3174**********03',
+      reporterAlias: citizenAlias,
+      reporterNikMasked: userSession.nikMasked,
+      reporterPhoneMasked: userSession.phoneMasked,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       upvotes: 1,
@@ -105,7 +158,7 @@ export default function BuatLaporanPage() {
           date: 'Hari ini, Baru saja',
           status: 'pending',
           title: 'Laporan Diterima Sistem',
-          note: 'Laporan Anda telah berhasil masuk dan langsung tampil di Peta Komunitas publik.',
+          note: `Laporan masuk dari akun warga terverifikasi (${userSession.nikMasked}). Menunggu peninjauan petugas verifikator dinas terkait.`,
           actor: 'Sistem TRACE',
         },
       ],
@@ -136,6 +189,81 @@ export default function BuatLaporanPage() {
     { num: 3, label: 'Foto & Rincian', icon: FileText },
   ];
 
+  // Layar Loading Sesi
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-3 text-slate-500 text-xs font-medium">
+          <div className="w-8 h-8 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
+          <span>Memeriksa status akun warga...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // PROTEKSI AUTH GATE: JIKA BELUM MASUK KE AKUN WARGA
+  if (!userSession) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col antialiased">
+        <Navbar />
+
+        <main className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+          <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xl space-y-6 text-center animate-in zoom-in-95 duration-200">
+            {/* Icon Gembok & Header */}
+            <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center mx-auto shadow-xs">
+              <Lock className="w-8 h-8 stroke-[1.8]" />
+            </div>
+
+            <div className="space-y-2">
+              <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                Masuk Diperlukan untuk Melapor
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 leading-relaxed max-w-sm mx-auto">
+                Demi menjamin validitas pengaduan di Kota Bengkulu dan mencegah laporan palsu/spam, setiap warga wajib masuk atau mendaftarkan akun terverifikasi NIK sebelum membuat laporan.
+              </p>
+            </div>
+
+            {/* Banner Keamanan */}
+            <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200/80 text-blue-800 text-xs flex items-center gap-2.5 text-left">
+              <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0" />
+              <span className="leading-relaxed">
+                Identitas NIK Anda dilindungi UU PDP. Anda dapat memilih opsi penyamaran nama pada tampilan peta publik.
+              </span>
+            </div>
+
+            {/* Tombol Masuk & Daftar dengan Redirect Langsung */}
+            <div className="space-y-3 pt-2">
+              <Link
+                href="/masuk?redirect=/dashboard/buat-laporan"
+                className="w-full min-h-12 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-semibold text-xs sm:text-sm shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Masuk ke Akun Warga Terdaftar</span>
+              </Link>
+
+              <Link
+                href="/daftar?redirect=/dashboard/buat-laporan"
+                className="w-full min-h-11.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <UserPlus className="w-4 h-4 text-slate-500" />
+                <span>Daftar Akun Baru (KTP Bengkulu)</span>
+              </Link>
+
+              <Link
+                href="/peta"
+                className="inline-block text-xs text-slate-400 hover:text-slate-700 font-medium transition-colors pt-2"
+              >
+                Kembali ke Peta Komunitas Publik &rarr;
+              </Link>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // TAMPILAN FORMULIR PELAPORAN JIKA SUDAH MASUK
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Navbar />
@@ -158,80 +286,60 @@ export default function BuatLaporanPage() {
 
         {/* Card Form */}
         <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 lg:p-10 border border-slate-200/80 shadow-xl shadow-slate-200/40">
-          {/* Header */}
-          <div className="mb-5 sm:mb-6 space-y-1">
-            <span className="text-xs font-bold uppercase tracking-wider text-blue-600">
-              Formulir Pengaduan Masyarakat
-            </span>
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Laporkan Masalah Lingkungan / Fasilitas
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500">
-              Laporan Anda akan diverifikasi oleh dinas terkait dan langsung dipetakan pada peta komunitas TRACE.
-            </p>
-          </div>
+          {/* Header Wizard Steps */}
+          <div className="border-b border-slate-100 pb-6 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                  Formulir Pengaduan Fasilitas Publik
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                  Halo, <strong>{userSession.nama}</strong> ({userSession.nikMasked}). Isi rincian masalah dengan jelas agar dinas terkait dapat merespons cepat.
+                </p>
+              </div>
+            </div>
 
-          {/* Stepper Progress Bar */}
-          <div className="mb-6 sm:mb-8 p-2 sm:p-3 rounded-2xl bg-slate-50 border border-slate-100">
-            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+            {/* Stepper Bar */}
+            <div className="grid grid-cols-3 gap-2 sm:gap-4">
               {STEPS.map((s) => {
-                const isCurrent = currentStep === s.num;
-                const isPast = currentStep > s.num;
                 const Icon = s.icon;
+                const isPassed = currentStep > s.num;
+                const isCurrent = currentStep === s.num;
 
                 return (
-                  <button
+                  <div
                     key={s.num}
-                    type="button"
-                    onClick={() => {
-                      if (isPast) setCurrentStep(s.num);
-                    }}
-                    className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 rounded-xl text-left transition-all ${
+                    className={`flex items-center gap-2 p-2 sm:p-3 rounded-xl border transition-all ${
                       isCurrent
-                        ? 'bg-blue-600 text-white shadow-xs'
-                        : isPast
-                        ? 'bg-blue-50 text-blue-700 cursor-pointer hover:bg-blue-100'
-                        : 'text-slate-400 opacity-70 cursor-not-allowed'
+                        ? 'border-blue-600 bg-blue-50/50 text-blue-700'
+                        : isPassed
+                        ? 'border-emerald-200 bg-emerald-50/40 text-emerald-700'
+                        : 'border-slate-100 bg-slate-50/50 text-slate-400'
                     }`}
                   >
                     <div
                       className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
                         isCurrent
-                          ? 'bg-white/20 text-white'
-                          : isPast
-                          ? 'bg-blue-200/80 text-blue-800'
+                          ? 'bg-blue-600 text-white'
+                          : isPassed
+                          ? 'bg-emerald-600 text-white'
                           : 'bg-slate-200 text-slate-500'
                       }`}
                     >
-                      {isPast ? <Check className="w-3.5 h-3.5" /> : s.num}
+                      {isPassed ? <Check className="w-3.5 h-3.5 stroke-3" /> : s.num}
                     </div>
-                    <div className="min-w-0 hidden xs:block">
-                      <div className="text-[10px] uppercase font-bold opacity-80 leading-none">
-                        Tahap {s.num}
-                      </div>
-                      <div className="text-[11px] sm:text-xs font-semibold truncate leading-tight mt-0.5">
-                        {s.label}
-                      </div>
+                    <div className="hidden sm:block min-w-0">
+                      <div className="text-xs font-bold truncate">{s.label}</div>
                     </div>
-                    <Icon className="w-4 h-4 ml-auto shrink-0 opacity-70 hidden md:block" />
-                  </button>
+                  </div>
                 );
               })}
             </div>
           </div>
 
-          {isSuccess && (
-            <div className="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-3 animate-in fade-in duration-200">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-              <div>
-                <p className="font-bold">Laporan Berhasil Diajukan!</p>
-                <p className="text-xs">Mengalihkan ke dashboard Anda untuk memantau progres penanganan...</p>
-              </div>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* TAHAP 1: Kategori & Tingkat Urgensi */}
+          {/* Form Content Berdasarkan Step */}
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* LANGKAH 1 */}
             {currentStep === 1 && (
               <div className="space-y-6 animate-in fade-in duration-200">
                 <CategorySelector
@@ -239,7 +347,7 @@ export default function BuatLaporanPage() {
                   onSelectCategory={setCategory}
                 />
 
-                <div className="pt-2 border-t border-slate-100">
+                <div className="pt-4 border-t border-slate-100">
                   <UrgencySelector
                     urgency={urgency}
                     onUrgencyChange={setUrgency}
@@ -248,7 +356,7 @@ export default function BuatLaporanPage() {
               </div>
             )}
 
-            {/* TAHAP 2: Titik Lokasi Peta GPS */}
+            {/* LANGKAH 2 */}
             {currentStep === 2 && (
               <div className="space-y-6 animate-in fade-in duration-200">
                 <LocationStep
@@ -265,7 +373,7 @@ export default function BuatLaporanPage() {
               </div>
             )}
 
-            {/* TAHAP 3: Judul, Rincian, & Foto Bukti */}
+            {/* LANGKAH 3 */}
             {currentStep === 3 && (
               <div className="space-y-6 animate-in fade-in duration-200">
                 <ReportDetailsStep
@@ -275,63 +383,67 @@ export default function BuatLaporanPage() {
                   onDescriptionChange={setDescription}
                   imagePreview={imagePreview}
                   onPhotoUpload={handlePhotoUpload}
+                  userSession={userSession}
+                  isAnonymous={isAnonymous}
+                  onIsAnonymousChange={setIsAnonymous}
                 />
-
-                {/* Privasi Reminder */}
-                <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-100 flex items-center gap-3 text-xs text-emerald-800">
-                  <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
-                  <span>
-                    Identitas NIK Anda terlindungi secara kriptografis (UU PDP No. 27/2022) dan tidak akan pernah ditampilkan ke khalayak umum.
-                  </span>
-                </div>
               </div>
             )}
 
-            {/* Tombol Navigasi Wizard */}
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+            {/* Navigation Buttons */}
+            <div className="flex items-center justify-between pt-6 border-t border-slate-100">
               {currentStep > 1 ? (
                 <button
                   type="button"
                   onClick={handlePrevStep}
-                  className="min-h-11 px-4 sm:px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-100 transition-colors flex items-center gap-1.5 active:scale-95 focus-visible:outline-2 focus-visible:outline-blue-600"
+                  disabled={isSubmitting || isSuccess}
+                  className="px-4 sm:px-6 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold text-xs sm:text-sm transition-all flex items-center gap-2 cursor-pointer"
                 >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Sebelumnya</span>
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Kembali</span>
                 </button>
               ) : (
-                <Link
-                  href="/dashboard"
-                  className="min-h-11 px-4 sm:px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-100 transition-colors flex items-center justify-center focus-visible:outline-2 focus-visible:outline-blue-600"
-                >
-                  Batal
-                </Link>
+                <div />
               )}
 
               {currentStep < 3 ? (
                 <button
                   type="button"
                   onClick={handleNextStep}
-                  className="min-h-11 px-4.5 sm:px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 active:scale-95 transition-all flex items-center gap-1.5 focus-visible:outline-2 focus-visible:outline-blue-600"
+                  className="px-5 sm:px-8 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-semibold text-xs sm:text-sm shadow-md shadow-blue-500/20 transition-all flex items-center gap-2 cursor-pointer"
                 >
-                  <span>
-                    {currentStep === 1 ? 'Lanjut ke Lokasi' : 'Lanjut ke Foto'}
-                  </span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <span>Lanjutkan</span>
+                  <ArrowRight className="w-4 h-4" />
                 </button>
               ) : (
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="min-h-11 px-5 sm:px-7 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 active:scale-95 transition-all disabled:opacity-50 flex items-center gap-1.5 focus-visible:outline-2 focus-visible:outline-blue-600"
+                  disabled={isSubmitting || isSuccess}
+                  className="px-6 sm:px-9 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/20 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-60"
                 >
-                  <span>{isSubmitting ? 'Mengirimkan...' : 'Kirim Laporan'}</span>
-                  <CheckCircle2 className="w-4 h-4" />
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Menerbitkan Laporan...</span>
+                    </>
+                  ) : isSuccess ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Berhasil Dikirim!</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>Kirim Laporan Resmi</span>
+                    </>
+                  )}
                 </button>
               )}
             </div>
           </form>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

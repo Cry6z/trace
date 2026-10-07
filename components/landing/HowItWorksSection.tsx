@@ -13,10 +13,10 @@ const STEPS = [
   {
     number: '02',
     icon: ShieldCheck,
-    title: 'Verifikasi Aman & Sensor NIK',
+    title: 'Verifikasi Cepat & Validasi Laporan',
     description:
-      'Identitas Anda terproteksi UU PDP. NIK disensor otomatis menjadi format anonim sebelum dipublikasikan.',
-    highlight: 'Privasi Terjamin',
+      'Sistem memvalidasi keabsahan data pengaduan dan mencegah laporan spam secara otomatis.',
+    highlight: 'Resmi & Valid',
   },
   {
     number: '03',

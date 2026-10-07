@@ -157,7 +157,7 @@ export default function AdminReportsTable({
                       <button
                         type="button"
                         onClick={() => onViewDetail(report)}
-                        className="min-h-[38px] px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 transition-colors font-semibold focus-visible:outline-2 focus-visible:outline-blue-600"
+                        className="min-h-9.5 px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 transition-colors font-semibold focus-visible:outline-2 focus-visible:outline-blue-600"
                         title="Lihat Detail"
                       >
                         Detail
@@ -165,7 +165,7 @@ export default function AdminReportsTable({
                       <button
                         type="button"
                         onClick={() => onOpenAction(report)}
-                        className="min-h-[38px] px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors shadow-2xs focus-visible:outline-2 focus-visible:outline-blue-600"
+                        className="min-h-9.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors shadow-2xs focus-visible:outline-2 focus-visible:outline-blue-600"
                       >
                         Tindak Lanjut
                       </button>

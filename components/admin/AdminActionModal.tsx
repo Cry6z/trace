@@ -75,7 +75,7 @@ export default function AdminActionModal({
             type="button"
             onClick={onClose}
             aria-label="Tutup modal"
-            className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-colors focus-visible:outline-2 focus-visible:outline-blue-600"
+            className="w-10 h-10 min-w-10 min-h-10 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-colors focus-visible:outline-2 focus-visible:outline-blue-600"
           >
             <X className="w-5 h-5" />
           </button>
@@ -160,7 +160,7 @@ export default function AdminActionModal({
               placeholder="Contoh: Regu 2 Satgas Bina Marga telah diterjunkan untuk pengaspalan darurat..."
               value={actionNote}
               onChange={(e) => onNoteChange(e.target.value)}
-              className="w-full min-h-[84px] p-3 rounded-xl border border-slate-200 text-base sm:text-xs focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+              className="w-full min-h-21 p-3 rounded-xl border border-slate-200 text-base sm:text-xs focus:ring-2 focus:ring-blue-500 outline-none resize-none"
             />
           </div>
 

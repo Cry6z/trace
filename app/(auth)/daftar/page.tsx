@@ -3,11 +3,11 @@ import { Suspense } from 'react';
 import AuthContainer from '@/components/auth/AuthContainer';
 
 export const metadata: Metadata = {
-  title: 'Masuk Akun Warga | TRACE Bengkulu',
-  description: 'Masuk ke portal TRACE Kota Bengkulu menggunakan identitas NIK dan PIN atau OTP untuk memantau pengaduan fasilitas publik.',
+  title: 'Daftar Akun Warga | TRACE Bengkulu',
+  description: 'Daftarkan identitas akun warga Kota Bengkulu untuk mengajukan dan mengawal laporan perbaikan fasilitas publik.',
 };
 
-export default function MasukPage() {
+export default function DaftarPage() {
   return (
     <Suspense
       fallback={
@@ -16,7 +16,7 @@ export default function MasukPage() {
         </div>
       }
     >
-      <AuthContainer initialTab="masuk" />
+      <AuthContainer initialTab="daftar" />
     </Suspense>
   );
 }

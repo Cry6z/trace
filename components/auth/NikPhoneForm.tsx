@@ -100,11 +100,11 @@ export default function NikPhoneForm({
         </p>
       </div>
 
-      {/* Jaminan Privasi */}
+      {/* Jaminan Keamanan */}
       <div className="p-3 rounded-2xl bg-blue-50/60 border border-blue-100 flex items-start gap-2.5">
         <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
         <p className="text-[11px] text-blue-800 leading-relaxed">
-          <strong>Privasi Dijamin:</strong> NIK Anda dilindungi enkripsi AES-256 dan tidak pernah dipublikasikan di peta publik.
+          <strong>Keamanan Terjamin:</strong> NIK Anda terenkripsi aman dan tidak dipublikasikan ke peta umum.
         </p>
       </div>
 

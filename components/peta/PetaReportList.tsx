@@ -67,7 +67,7 @@ export default function PetaReportList({
             <button
               type="button"
               onClick={() => setIsCategoryOpen(!isCategoryOpen)}
-              className="w-full min-h-[38px] px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-slate-100/90 border border-slate-200 text-xs font-semibold text-slate-800 flex items-center justify-between transition-colors shadow-2xs active:scale-98 focus-visible:outline-2 focus-visible:outline-blue-600"
+              className="w-full min-h-9.5 px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-slate-100/90 border border-slate-200 text-xs font-semibold text-slate-800 flex items-center justify-between transition-colors shadow-2xs active:scale-98 focus-visible:outline-2 focus-visible:outline-blue-600"
               aria-expanded={isCategoryOpen}
               aria-haspopup="listbox"
             >
@@ -170,7 +170,7 @@ export default function PetaReportList({
                 onSelectCategory('all');
                 onSelectStatus('all');
               }}
-              className="min-h-[38px] px-3 py-2 rounded-xl text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors flex items-center gap-1 shrink-0 active:scale-95"
+              className="min-h-9.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors flex items-center gap-1 shrink-0 active:scale-95"
               title="Reset Semua Filter"
             >
               <X className="w-3.5 h-3.5" />

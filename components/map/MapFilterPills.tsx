@@ -80,7 +80,7 @@ export default function MapFilterPills({
           {selectedCategory === 'all' ? (
             <>
               <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-              <span className="truncate max-w-[115px] sm:max-w-none">Kategori</span>
+              <span className="truncate max-w-28 sm:max-w-none">Kategori</span>
               <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-600 font-mono font-bold shrink-0">
                 {reports.length}
               </span>
@@ -91,7 +91,7 @@ export default function MapFilterPills({
                 className="w-2 h-2 rounded-full shrink-0 animate-pulse"
                 style={{ backgroundColor: activeCatConfig?.colorHex }}
               />
-              <span className="truncate max-w-[100px] sm:max-w-none">
+              <span className="truncate max-w-25 sm:max-w-none">
                 {activeCatConfig?.name.split(' ')[0]}
               </span>
               <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/20 text-white font-mono font-bold shrink-0">

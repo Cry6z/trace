@@ -8,13 +8,13 @@ import { Home, MapPin, Plus, LayoutDashboard, Shield } from 'lucide-react';
 export default function MobileBottomNav() {
   const pathname = usePathname();
 
-  // Sembunyikan di halaman login masuk dan area khusus petugas /admin
-  if (pathname === '/masuk' || pathname.startsWith('/admin')) return null;
+  // Sembunyikan di halaman masuk, daftar, dan area admin khusus petugas
+  if (pathname === '/masuk' || pathname === '/daftar' || pathname.startsWith('/admin')) return null;
 
   const isHome = pathname === '/';
   const isPeta = pathname.startsWith('/peta');
   const isLapor = pathname.startsWith('/dashboard/buat-laporan');
-  const isDashboard = pathname === '/dashboard' && !isLapor;
+  const isDashboard = pathname.startsWith('/dashboard') && !isLapor;
 
   return (
     <nav

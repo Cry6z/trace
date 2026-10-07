@@ -416,7 +416,7 @@ export default function CommunityMap({
   return (
     <div
       className={`relative w-full rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-200/90 shadow-xl shadow-slate-200/40 bg-slate-100 ${
-        className || 'h-[390px] sm:h-[460px] lg:h-[520px]'
+        className || 'h-97.5 sm:h-115 lg:h-130'
       }`}
     >
       {/* Top Floating Overlay Controls & Filter */}

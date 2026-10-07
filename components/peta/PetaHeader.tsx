@@ -29,7 +29,7 @@ export default function PetaHeader({
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           <Link
             href="/"
-            className="min-w-[40px] min-h-[40px] p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center justify-center transition-colors focus-visible:outline-2 focus-visible:outline-blue-600"
+            className="min-w-10 min-h-10 p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center justify-center transition-colors focus-visible:outline-2 focus-visible:outline-blue-600"
             title="Kembali ke Beranda"
             aria-label="Kembali ke Beranda"
           >
@@ -87,7 +87,7 @@ export default function PetaHeader({
           <button
             type="button"
             onClick={() => setMobileSearchOpen((prev) => !prev)}
-            className="md:hidden min-w-9.5 min-h-[38px] p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center justify-center transition-colors focus-visible:outline-2 focus-visible:outline-blue-600"
+            className="md:hidden min-w-9.5 min-h-9.5 p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center justify-center transition-colors focus-visible:outline-2 focus-visible:outline-blue-600"
             title="Cari Laporan"
             aria-label="Cari Laporan"
           >
@@ -99,7 +99,7 @@ export default function PetaHeader({
             <button
               type="button"
               onClick={() => onMobileTabChange('map')}
-              className={`min-h-[34px] px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
+              className={`min-h-8.5 px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
                 mobileTab === 'map' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-600'
               }`}
             >
@@ -109,7 +109,7 @@ export default function PetaHeader({
             <button
               type="button"
               onClick={() => onMobileTabChange('sidebar')}
-              className={`min-h-[34px] px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
+              className={`min-h-8.5 px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
                 mobileTab === 'sidebar' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-600'
               }`}
             >
