@@ -238,6 +238,11 @@ CREATE POLICY "Enable update for service role or admin"
   ON reports FOR UPDATE
   USING (true);
 
+-- 4. Pengelola / aplikasi dapat menghapus laporan
+CREATE POLICY "Enable delete reports"
+  ON reports FOR DELETE
+  USING (true);
+
 -- Kebijakan Timeline:
 CREATE POLICY "Public can view report timeline"
   ON report_timeline FOR SELECT
@@ -246,6 +251,10 @@ CREATE POLICY "Public can view report timeline"
 CREATE POLICY "Enable insert timeline"
   ON report_timeline FOR INSERT
   WITH CHECK (true);
+
+CREATE POLICY "Enable delete timeline"
+  ON report_timeline FOR DELETE
+  USING (true);
 
 -- Kebijakan Upvotes:
 CREATE POLICY "Public can view upvotes"
@@ -314,176 +323,5 @@ VALUES
   ('33333333-3333-3333-3333-333333333333', 'admin.dlh', 'Dewi Lestari, S.Si.', '199003112015032001', 'dinas_teknis', 'Dinas Lingkungan Hidup (DLH) Kota Bengkulu', '085268004003')
 ON CONFLICT (id) DO NOTHING;
 
--- B. Contoh Akun Warga Terdaftar (Untuk Testing Cepat)
-INSERT INTO citizens (id, nik_hash, nik_masked, nama_lengkap, phone, phone_masked, email, pin_hash, kecamatan, kelurahan, alamat_ktp, is_verified)
-VALUES
-  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'budi_hash_nik_1771_001', '1771**********01', 'Budi Santoso', '081234567890', '0812****7890', 'budi.santoso@warga.bengkulu.go.id', '123456', 'Ratu Samban', 'Lempuing', 'Jl. Pariwisata Pantai Panjang No. 12', true),
-  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'siti_hash_nik_1771_002', '1771**********03', 'Siti Rahmawati', '085273112233', '0852****2233', 'siti.rahma@warga.bengkulu.go.id', '123456', 'Ratu Agung', 'Nusa Indah', 'Jl. Nusa Indah II No. 8', true),
-  ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'ahmad_hash_nik_1771_003', '1771**********05', 'Ahmad Fauzi', '082198765432', '0821****5432', 'ahmad.fauzi@warga.bengkulu.go.id', '123456', 'Gading Cempaka', 'Padang Harapan', 'Jl. Ciliwung No. 4', true)
-ON CONFLICT (id) DO NOTHING;
+-- Catatan: Data laporan, warga, dan linimasa murni dibuat melalui antarmuka aplikasi.
 
--- C. Laporan Awal Fasilitas Publik Kota Bengkulu
-INSERT INTO reports (
-  id, tracking_code, title, description, category, status, urgency,
-  latitude, longitude, address, district, village, image_url,
-  reporter_alias, reporter_phone_masked, reporter_nik_masked, citizen_id, upvotes, assigned_agency, admin_note
-)
-VALUES
-  (
-    '00000000-0000-0000-0000-000000000001',
-    'TRC-2026-0812',
-    'Lubang Aspal Menganga Sangat Berbahaya untuk Pemotor',
-    'Terdapat lubang sedalam sekitar 15 cm di lajur kiri dekat lampu merah. Sudah ada 2 pengendara motor yang hampir terjatuh saat hujan malam hari.',
-    'jalan',
-    'pending',
-    'tinggi',
-    -3.8210,
-    102.2780,
-    'Jl. Pariwisata Pantai Panjang (Dekat Jembatan Pasir Putih)',
-    'Ratu Samban',
-    'Lempuing',
-    'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80',
-    'Warga #4102',
-    '0812****8821',
-    '1771**********03',
-    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-    24,
-    NULL,
-    NULL
-  ),
-  (
-    '00000000-0000-0000-0000-000000000002',
-    'TRC-2026-0795',
-    '3 Titik Lampu Jalan PJU Padam Total, Jalanan Sangat Gelap',
-    'Penerangan jalan umum di sepanjang lorong perumahan sudah mati selama 4 hari berturut-turut. Rawan kejahatan dan membahayakan warga pejalan kaki.',
-    'pju',
-    'in_progress',
-    'sedang',
-    -3.7925,
-    102.2642,
-    'Jl. Soeprapto No. 45 (Sekitar Simpang Lima Ratu Samban)',
-    'Ratu Samban',
-    'Belakang Pondok',
-    'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&w=800&q=80',
-    'Warga #1984',
-    '0857****3319',
-    '1771**********22',
-    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
-    18,
-    'Dinas Perhubungan & Penerangan Jalan Kota Bengkulu',
-    'Tim teknis PJU Rayon Kota telah dijadwalkan mengganti trafo dan lampu LED pada shift malam.'
-  ),
-  (
-    '00000000-0000-0000-0000-000000000003',
-    'TRC-2026-0780',
-    'Tumpukan Sampah Liar Menumpuk di Lahan Kosong Tepi Jalan',
-    'Banyak oknum membuang sampah rumah tangga dan puing bangunan secara liar hingga meluber ke tepi bahu jalan dan menimbulkan bau tidak sedap.',
-    'sampah',
-    'in_progress',
-    'sedang',
-    -3.8015,
-    102.3020,
-    'Jl. Danau No. 12 (Tepi Danau Dendam Tak Sudah)',
-    'Singaran Pati',
-    'Dusun Besar',
-    'https://images.unsplash.com/photo-1605600659908-0ef719419d41?auto=format&fit=crop&w=800&q=80',
-    'Warga #8812',
-    '0813****9012',
-    '1771**********55',
-    'cccccccc-cccc-cccc-cccc-cccccccccccc',
-    32,
-    'Dinas Lingkungan Hidup (DLH) Kota Bengkulu',
-    'Armada truk pengangkut sampah DLH Regu Singaran Pati diberangkatkan pagi ini untuk pembersihan total.'
-  ),
-  (
-    '00000000-0000-0000-0000-000000000004',
-    'TRC-2026-0750',
-    'Drainase Utama Tersumbat Menyebabkan Genangan Banjir Air Keruh',
-    'Setiap kali hujan deras turun lebih dari 30 menit, air drainase meluap membanjiri badan jalan setinggi mata kaki karena sedimentasi lumpur tebal.',
-    'banjir',
-    'resolved',
-    'tinggi',
-    -3.8290,
-    102.3110,
-    'Jl. Kapuas Raya No. 88 (Dekat Kantor Camat Gading Cempaka)',
-    'Gading Cempaka',
-    'Padang Harapan',
-    'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80',
-    'Warga #3210',
-    '0852****9911',
-    '1771**********89',
-    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-    41,
-    'Dinas PUPR Bidang Sumber Daya Air Kota Bengkulu',
-    'Pengerukan lumpur drainase telah selesai dilaksanakan menggunakan mini-excavator. Aliran air kini normal.'
-  )
-ON CONFLICT (id) DO NOTHING;
-
--- D. Timeline Pengaduan
-INSERT INTO report_timeline (report_id, status, title, note, actor, created_at)
-VALUES
-  (
-    '00000000-0000-0000-0000-000000000001',
-    'pending',
-    'Laporan Diterima Sistem',
-    'Laporan masuk dari warga terverifikasi NIK & OTP. Menunggu peninjauan petugas verifikator dinas.',
-    'Sistem TRACE',
-    NOW() - INTERVAL '1 day'
-  ),
-  (
-    '00000000-0000-0000-0000-000000000002',
-    'pending',
-    'Laporan Masuk',
-    'Laporan diverifikasi oleh Operator TRACE.',
-    'Admin Wilayah',
-    NOW() - INTERVAL '2 days'
-  ),
-  (
-    '00000000-0000-0000-0000-000000000002',
-    'in_progress',
-    'Disposisi ke Tim Lapangan Dishub',
-    'Diteruskan ke Unit Penerangan Jalan Dinas Perhubungan. Regu teknisi shift malam dijadwalkan meluncur ke lokasi.',
-    'Dishub Kota Bengkulu',
-    NOW() - INTERVAL '1 day'
-  ),
-  (
-    '00000000-0000-0000-0000-000000000003',
-    'pending',
-    'Laporan Divalidasi',
-    'Laporan divalidasi dan dikonfirmasi oleh warga sekitar.',
-    'Sistem TRACE',
-    NOW() - INTERVAL '3 days'
-  ),
-  (
-    '00000000-0000-0000-0000-000000000003',
-    'in_progress',
-    'Penjadwalan Armada Pengangkut Sampah',
-    'Instruksi penanganan diterbitkan. Truk sampah DLH Unit Singaran Pati dijadwalkan membersihkan lokasi.',
-    'Dinas Lingkungan Hidup Bengkulu',
-    NOW() - INTERVAL '2 days'
-  ),
-  (
-    '00000000-0000-0000-0000-000000000004',
-    'pending',
-    'Laporan Masuk',
-    'Aduan sedimentasi parit diterima.',
-    'Sistem TRACE',
-    NOW() - INTERVAL '5 days'
-  ),
-  (
-    '00000000-0000-0000-0000-000000000004',
-    'in_progress',
-    'Pengerukan Sedimentasi Lumpur Dimulai',
-    'Peralatan dan regu pengeruk PUPR diturunkan ke Jl. Kapuas Raya.',
-    'Dinas PUPR Bidang SDA',
-    NOW() - INTERVAL '3 days'
-  ),
-  (
-    '00000000-0000-0000-0000-000000000004',
-    'resolved',
-    'Pekerjaan Pembersihan Drainase Selesai',
-    'Saluran air telah bersih dari sedimen lumpur dan sampah. Aliran air kembali lancar dan bebas sumbatan.',
-    'Tim Teknis PUPR Bengkulu',
-    NOW() - INTERVAL '1 day'
-  )
-ON CONFLICT DO NOTHING;

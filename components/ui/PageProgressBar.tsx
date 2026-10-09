@@ -36,7 +36,7 @@ export default function PageProgressBar() {
   if (!visible && progress === 0) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[100] h-[3px] pointer-events-none bg-transparent overflow-hidden">
+    <div className="fixed top-0 left-0 right-0 z-100 h-0.75 pointer-events-none bg-transparent overflow-hidden">
       <div
         className="h-full bg-linear-to-r from-blue-500 via-indigo-600 to-blue-400 shadow-[0_0_12px_rgba(37,99,235,0.85)] transition-all duration-200 ease-out"
         style={{

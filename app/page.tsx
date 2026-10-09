@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import CommunityMap from '@/components/map/CommunityMap';
@@ -8,12 +8,30 @@ import ReportDetailModal from '@/components/ui/ReportDetailModal';
 import HeroSection from '@/components/landing/HeroSection';
 import FeaturedReportsSection from '@/components/landing/FeaturedReportsSection';
 import HowItWorksSection from '@/components/landing/HowItWorksSection';
-import { INITIAL_REPORTS } from '@/lib/mockData';
 import { Report } from '@/lib/types';
+import { getReports } from '@/lib/services/reportService';
 
 export default function HomePage() {
-  const [reports, setReports] = useState<Report[]>(INITIAL_REPORTS);
+  const [reports, setReports] = useState<Report[]>([]);
   const [activeReportModal, setActiveReportModal] = useState<Report | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchReports = async () => {
+      try {
+        const data = await getReports();
+        if (isMounted && data) {
+          setReports(data);
+        }
+      } catch (err) {
+        console.error('Error loading reports on home:', err);
+      }
+    };
+    fetchReports();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleUpvote = (reportId: string) => {
     setReports((prev) =>

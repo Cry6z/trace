@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/ui/ToastProvider';
 import { getUserSession, UserSession, AUTH_CHANGE_EVENT } from '@/lib/auth';
+import { submitReportToSupabase } from '@/lib/services/reportService';
 
 export default function BuatLaporanPage() {
   const router = useRouter();
@@ -168,8 +169,17 @@ export default function BuatLaporanPage() {
       ],
     };
 
-    // Simpan ke local storage agar terbaca di dashboard
-    setTimeout(() => {
+    // Simpan ke Supabase (Real-Time Database) & Local Cache
+    const submitAsync = async () => {
+      try {
+        const res = await submitReportToSupabase(newReport);
+        if (!res.success) {
+          console.warn('Info submit Supabase:', res.error);
+        }
+      } catch (err) {
+        console.error('Error submit Supabase:', err);
+      }
+
       if (typeof window !== 'undefined') {
         const stored = localStorage.getItem('trace_user_reports');
         const list = stored ? JSON.parse(stored) : [];
@@ -184,7 +194,9 @@ export default function BuatLaporanPage() {
       setTimeout(() => {
         router.push('/dashboard');
       }, 1600);
-    }, 700);
+    };
+
+    submitAsync();
   };
 
   const STEPS = [

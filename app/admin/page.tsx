@@ -13,8 +13,8 @@ import AdminPendingQueueView from '@/components/admin/views/AdminPendingQueueVie
 import AdminInProgressView from '@/components/admin/views/AdminInProgressView';
 import AdminResolvedView from '@/components/admin/views/AdminResolvedView';
 import AdminMapDistributionView from '@/components/admin/views/AdminMapDistributionView';
-import { INITIAL_REPORTS } from '@/lib/mockData';
 import { Report, ReportStatus } from '@/lib/types';
+import { getReports, updateReportStatusInSupabase, DUMMY_TRACKING_CODES } from '@/lib/services/reportService';
 
 export default function AdminDashboardPage() {
   const [officer, setOfficer] = useState<OfficerProfile | null>(null);
@@ -24,7 +24,7 @@ export default function AdminDashboardPage() {
   // Active Menu: Default ke 'dashboard' (Dashboard Awal)
   const [activeMenu, setActiveMenu] = useState<AdminMenuId>('dashboard');
 
-  const [reports, setReports] = useState<Report[]>(INITIAL_REPORTS);
+  const [reports, setReports] = useState<Report[]>([]);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [detailModalReport, setDetailModalReport] = useState<Report | null>(null);
 
@@ -37,9 +37,7 @@ export default function AdminDashboardPage() {
   const [actionStatus, setActionStatus] = useState<ReportStatus>('in_progress');
   const [actionAgency, setActionAgency] = useState<string>('Dinas Pekerjaan Umum & Penataan Ruang (PUPR)');
   const [actionNote, setActionNote] = useState<string>('');
-  const [actionEvidenceUrl, setActionEvidenceUrl] = useState<string>(
-    'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f6?auto=format&fit=crop&w=800&q=80'
-  );
+  const [actionEvidenceUrl, setActionEvidenceUrl] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [updateSuccess, setUpdateSuccess] = useState<boolean>(false);
 
@@ -62,22 +60,39 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
-  // Load custom reports if any
+  // Load real-time reports from Supabase & Local Cache
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('trace_user_reports');
-      if (stored) {
-        try {
-          const custom = JSON.parse(stored);
-          const combined = [...custom, ...INITIAL_REPORTS];
-          queueMicrotask(() => {
-            setReports(combined);
-          });
-        } catch {
-          // ignore
+    let isMounted = true;
+    const fetchReports = async () => {
+      try {
+        const dbReports = await getReports();
+        if (!isMounted) return;
+
+        if (typeof window !== 'undefined') {
+          const stored = localStorage.getItem('trace_user_reports');
+          if (stored) {
+            try {
+              const local: Report[] = JSON.parse(stored);
+              const cleanLocal = local.filter((r) => !DUMMY_TRACKING_CODES.has(r.trackingCode) && !DUMMY_TRACKING_CODES.has(r.id));
+              const dbCodes = new Set(dbReports.map((r) => r.trackingCode));
+              const freshLocal = cleanLocal.filter((r) => !dbCodes.has(r.trackingCode));
+              setReports([...freshLocal, ...dbReports]);
+              return;
+            } catch {}
+          }
         }
+
+        setReports(dbReports);
+      } catch (err) {
+        console.error('Error fetching admin reports:', err);
       }
-    }
+    };
+
+    fetchReports();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleLoginSuccess = (profile: OfficerProfile) => {
@@ -111,15 +126,16 @@ export default function AdminDashboardPage() {
   const inProgressCount = reports.filter((r) => r.status === 'in_progress').length;
   const resolvedCount = reports.filter((r) => r.status === 'resolved').length;
 
-  const handleOpenActionModal = (report: Report) => {
+  const handleOpenActionModal = (report: Report, targetStatus?: ReportStatus) => {
     setSelectedReport(report);
-    setActionStatus(report.status === 'pending' ? 'in_progress' : report.status);
+    setActionStatus(targetStatus || (report.status === 'pending' ? 'in_progress' : report.status));
     setActionAgency(officer?.instansi || report.assignedAgency || 'Dinas Pekerjaan Umum & Penataan Ruang (PUPR)');
-    setActionNote('');
+    setActionNote(report.adminNote || '');
+    setActionEvidenceUrl(report.resolvedImageUrl || '');
     setUpdateSuccess(false);
   };
 
-  const handleSaveAction = (e: React.FormEvent) => {
+  const handleSaveAction = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedReport) return;
 
@@ -133,7 +149,9 @@ export default function AdminDashboardPage() {
       minute: '2-digit',
     });
 
-    const officerActorName = officer ? `${officer.nama} (${officer.instansi.split(' ')[0]} ${officer.instansi.split(' ')[1] || ''})` : actionAgency;
+    const officerActorName = officer 
+      ? `${officer.nama} (${officer.instansi.split(' ')[0]} ${officer.instansi.split(' ')[1] || ''})` 
+      : actionAgency;
 
     const newTimelineEvent = {
       id: `tl-${Date.now()}`,
@@ -151,9 +169,26 @@ export default function AdminDashboardPage() {
           ? 'Masalah telah diselesaikan tuntas oleh tim dinas.'
           : 'Sedang dalam penanganan petugas lapangan.'),
       actor: officerActorName,
-      evidenceUrl: actionStatus === 'resolved' ? actionEvidenceUrl : undefined,
+      evidenceUrl: actionStatus === 'resolved' && actionEvidenceUrl ? actionEvidenceUrl : undefined,
     };
 
+    const resolvedImg = actionStatus === 'resolved' && actionEvidenceUrl ? actionEvidenceUrl : selectedReport.resolvedImageUrl;
+
+    // 1. Simpan perubahan ke database Supabase
+    try {
+      await updateReportStatusInSupabase(
+        selectedReport.id,
+        actionStatus,
+        actionAgency,
+        actionNote || undefined,
+        resolvedImg,
+        newTimelineEvent
+      );
+    } catch (err) {
+      console.error('Gagal sinkron update status ke Supabase:', err);
+    }
+
+    // 2. Perbarui state lokal & cache localStorage
     const updated = reports.map((r) => {
       if (r.id === selectedReport.id) {
         return {
@@ -161,7 +196,7 @@ export default function AdminDashboardPage() {
           status: actionStatus,
           assignedAgency: actionAgency,
           adminNote: actionNote || r.adminNote,
-          resolvedImageUrl: actionStatus === 'resolved' ? actionEvidenceUrl : r.resolvedImageUrl,
+          resolvedImageUrl: resolvedImg,
           timeline: [...r.timeline, newTimelineEvent],
           updatedAt: new Date().toISOString(),
         };
@@ -169,15 +204,17 @@ export default function AdminDashboardPage() {
       return r;
     });
 
-    setTimeout(() => {
-      setReports(updated);
-      setIsUpdating(false);
-      setUpdateSuccess(true);
+    setReports(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('trace_user_reports', JSON.stringify(updated));
+    }
 
-      setTimeout(() => {
-        setSelectedReport(null);
-      }, 1000);
-    }, 600);
+    setIsUpdating(false);
+    setUpdateSuccess(true);
+
+    setTimeout(() => {
+      setSelectedReport(null);
+    }, 1000);
   };
 
   // Jika belum login sebagai petugas dinas, tampilkan layar login petugas aman
@@ -300,7 +337,7 @@ export default function AdminDashboardPage() {
           {activeMenu === 'map_distribution' && (
             <AdminMapDistributionView
               reports={reports}
-              onNavigateToReports={(cat) => {
+              onNavigateToReports={(cat?: string) => {
                 if (cat) setCategoryFilter(cat);
                 setActiveMenu('all_reports');
               }}

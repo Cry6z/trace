@@ -9,7 +9,7 @@ import Footer from '@/components/ui/Footer';
 import CategoryBadge from '@/components/ui/CategoryBadge';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { Report, CATEGORIES_CONFIG } from '@/lib/types';
-import { INITIAL_REPORTS } from '@/lib/mockData';
+import { getReportById, DUMMY_TRACKING_CODES } from '@/lib/services/reportService';
 import { useToast } from '@/components/ui/ToastProvider';
 import {
   ArrowLeft,
@@ -48,29 +48,56 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
   const [voteCount, setVoteCount] = useState<number>(0);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // 1. Cari di local storage
-      const stored = localStorage.getItem('trace_user_reports');
-      let customReports: Report[] = [];
-      if (stored) {
-        try {
-          customReports = JSON.parse(stored);
-        } catch {
-          // ignore
+    let isMounted = true;
+    const fetchReport = async () => {
+      if (DUMMY_TRACKING_CODES.has(reportId)) {
+        if (isMounted) setLoading(false);
+        return;
+      }
+
+      // 1. Cek di local storage jika laporan baru dibuat di device ini
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('trace_user_reports');
+        if (stored) {
+          try {
+            const customReports: Report[] = JSON.parse(stored);
+            const foundLocal = customReports.find(
+              (r) => 
+                !DUMMY_TRACKING_CODES.has(r.id) &&
+                !DUMMY_TRACKING_CODES.has(r.trackingCode) &&
+                (r.id === reportId || r.trackingCode.toLowerCase() === reportId.toLowerCase())
+            );
+            if (foundLocal && isMounted) {
+              setReport(foundLocal);
+              setVoteCount(foundLocal.upvotes);
+              setLoading(false);
+              return;
+            }
+          } catch {}
         }
       }
 
-      const allReports = [...customReports, ...INITIAL_REPORTS];
-      const found = allReports.find(
-        (r) => r.id === reportId || r.trackingCode.toLowerCase() === reportId.toLowerCase()
-      );
-
-      if (found) {
-        setReport(found);
-        setVoteCount(found.upvotes);
+      // 2. Fetch live data dari database Supabase
+      try {
+        const dbReport = await getReportById(reportId);
+        if (dbReport && isMounted) {
+          setReport(dbReport);
+          setVoteCount(dbReport.upvotes);
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.error('Error load report detail from Supabase:', err);
       }
-      setLoading(false);
-    }
+
+      if (isMounted) setLoading(false);
+    };
+
+    fetchReport();
+
+    return () => {
+      isMounted = false;
+    };
   }, [reportId]);
 
   if (loading) {

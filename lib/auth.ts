@@ -2,6 +2,7 @@
 
 import { maskNik, maskPhone, hashNik } from '@/lib/security/nikCrypto';
 import { verifyOtp, requestOtp } from '@/lib/security/otpService';
+import { supabase } from '@/lib/supabaseClient';
 
 export interface CitizenAccount {
   id: string;
@@ -36,83 +37,87 @@ const STORAGE_KEY = 'trace_user';
 const REGISTERED_CITIZENS_KEY = 'trace_registered_citizens';
 export const AUTH_CHANGE_EVENT = 'trace_auth_changed';
 
-/**
- * Akun bawaan terverifikasi Kota Bengkulu untuk kemudahan pengujian instan
- */
-export const INITIAL_REGISTERED_CITIZENS: CitizenAccount[] = [
-  {
-    id: 'cit-1771-001',
-    nik: '1771011205850001',
-    nikMasked: '1771**********01',
-    nikHash: 'budi_hash_nik_1771_001',
-    namaLengkap: 'Budi Santoso',
-    phone: '081234567890',
-    phoneMasked: '0812****7890',
-    email: 'budi.santoso@warga.bengkulu.go.id',
-    pin: '123456',
-    kecamatan: 'Ratu Samban',
-    kelurahan: 'Lempuing',
-    alamatKtp: 'Jl. Pariwisata Pantai Panjang No. 12, Kel. Lempuing',
-    isVerified: true,
-    createdAt: '2026-01-15T08:00:00Z',
-  },
-  {
-    id: 'cit-1771-002',
-    nik: '1771024508920003',
-    nikMasked: '1771**********03',
-    nikHash: 'siti_hash_nik_1771_002',
-    namaLengkap: 'Siti Rahmawati',
-    phone: '085273112233',
-    phoneMasked: '0852****2233',
-    email: 'siti.rahma@warga.bengkulu.go.id',
-    pin: '123456',
-    kecamatan: 'Ratu Agung',
-    kelurahan: 'Nusa Indah',
-    alamatKtp: 'Jl. Nusa Indah II No. 8, Kel. Nusa Indah',
-    isVerified: true,
-    createdAt: '2026-02-10T10:30:00Z',
-  },
-  {
-    id: 'cit-1771-003',
-    nik: '1771031902970005',
-    nikMasked: '1771**********05',
-    nikHash: 'ahmad_hash_nik_1771_003',
-    namaLengkap: 'Ahmad Fauzi',
-    phone: '082198765432',
-    phoneMasked: '0821****5432',
-    email: 'ahmad.fauzi@warga.bengkulu.go.id',
-    pin: '123456',
-    kecamatan: 'Gading Cempaka',
-    kelurahan: 'Padang Harapan',
-    alamatKtp: 'Jl. Ciliwung No. 4, Kel. Padang Harapan',
-    isVerified: true,
-    createdAt: '2026-03-01T14:20:00Z',
-  },
-];
+// Akun bawaan dummy telah dihapus. Seluruh akun warga murni berasal dari pendaftaran mandiri warga.
+export const INITIAL_REGISTERED_CITIZENS: CitizenAccount[] = [];
+
+const DUMMY_CITIZEN_IDS = new Set([
+  'cit-1771-001',
+  'cit-1771-002',
+  'cit-1771-003',
+  'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+  'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+  'cccccccc-cccc-cccc-cccc-cccccccccccc',
+]);
+const DUMMY_PHONES = new Set(['081234567890', '085273112233', '082198765432']);
 
 /**
  * Mengambil daftar seluruh warga yang terdaftar dalam sistem
  */
 export function getRegisteredCitizens(): CitizenAccount[] {
-  if (typeof window === 'undefined') return INITIAL_REGISTERED_CITIZENS;
+  if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(REGISTERED_CITIZENS_KEY);
-    if (!raw) {
-      // Inisialisasi awal dengan akun bawaan
-      localStorage.setItem(REGISTERED_CITIZENS_KEY, JSON.stringify(INITIAL_REGISTERED_CITIZENS));
-      return INITIAL_REGISTERED_CITIZENS;
-    }
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed;
+    if (Array.isArray(parsed)) {
+      const realCitizens = parsed.filter(
+        (c) => !DUMMY_CITIZEN_IDS.has(c.id) && !DUMMY_PHONES.has(c.phone)
+      );
+      if (realCitizens.length !== parsed.length) {
+        localStorage.setItem(REGISTERED_CITIZENS_KEY, JSON.stringify(realCitizens));
+      }
+      return realCitizens;
     }
-    // Jika array kosong, restore data awal
-    localStorage.setItem(REGISTERED_CITIZENS_KEY, JSON.stringify(INITIAL_REGISTERED_CITIZENS));
-    return INITIAL_REGISTERED_CITIZENS;
+    return [];
   } catch (err) {
     console.error('Failed to get registered citizens:', err);
-    return INITIAL_REGISTERED_CITIZENS;
+    return [];
   }
+}
+
+/**
+ * Mengambil dan mensinkronkan daftar warga dari Supabase ke penyimpanan lokal
+ */
+export async function syncCitizensFromSupabase(): Promise<CitizenAccount[]> {
+  try {
+    const { data, error } = await supabase.from('citizens').select('*');
+    if (!error && data && data.length > 0) {
+      const mapped: CitizenAccount[] = data
+        .filter((row) => !DUMMY_CITIZEN_IDS.has(row.id) && !DUMMY_PHONES.has(row.phone))
+        .map((row) => ({
+          id: row.id,
+          nik: row.nik_hash || '1771000000000000',
+          nikMasked: row.nik_masked,
+          nikHash: row.nik_hash,
+          namaLengkap: row.nama_lengkap,
+          phone: row.phone,
+          phoneMasked: row.phone_masked,
+          email: row.email || undefined,
+          pin: row.pin_hash || '123456',
+          kecamatan: row.kecamatan || undefined,
+          kelurahan: row.kelurahan || undefined,
+          alamatKtp: row.alamat_ktp || undefined,
+          isVerified: row.is_verified ?? true,
+          createdAt: row.created_at,
+        }));
+
+      if (typeof window !== 'undefined') {
+        const current = getRegisteredCitizens();
+        const combined = [...mapped];
+        for (const c of current) {
+          if (!combined.some((m) => m.phone === c.phone || m.nik === c.nik)) {
+            combined.push(c);
+          }
+        }
+        localStorage.setItem(REGISTERED_CITIZENS_KEY, JSON.stringify(combined));
+        return combined;
+      }
+      return mapped;
+    }
+  } catch (err) {
+    console.error('Failed to sync citizens from Supabase:', err);
+  }
+  return getRegisteredCitizens();
 }
 
 /**
@@ -218,6 +223,27 @@ export function registerCitizen(data: RegisterCitizenInput): {
       console.error('Failed to save registered citizen:', err);
       return { success: false, message: 'Gagal menyimpan data akun ke penyimpanan lokal.' };
     }
+  }
+
+  // Sinkronkan akun baru ke database Supabase secara real-time
+  try {
+    supabase.from('citizens').insert({
+      nik_hash: newCitizen.nikHash,
+      nik_masked: newCitizen.nikMasked,
+      nama_lengkap: newCitizen.namaLengkap,
+      phone: newCitizen.phone,
+      phone_masked: newCitizen.phoneMasked,
+      email: newCitizen.email || null,
+      pin_hash: newCitizen.pin,
+      kecamatan: newCitizen.kecamatan || null,
+      kelurahan: newCitizen.kelurahan || null,
+      alamat_ktp: newCitizen.alamatKtp || null,
+      is_verified: true,
+    }).then((res) => {
+      if (res.error) console.warn('Supabase citizen insert warning:', res.error.message);
+    });
+  } catch (err) {
+    console.warn('Supabase async sync citizen error:', err);
   }
 
   // Buat sesi otomatis setelah daftar

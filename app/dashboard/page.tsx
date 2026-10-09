@@ -13,8 +13,8 @@ import UserTicketsView from '@/components/dashboard/UserTicketsView';
 import LogoutConfirmModal from '@/components/dashboard/LogoutConfirmModal';
 import ReportDetailModal from '@/components/ui/ReportDetailModal';
 import UserProfileView from '@/components/dashboard/UserProfileView';
-import { INITIAL_REPORTS } from '@/lib/mockData';
 import { Report } from '@/lib/types';
+import { getReports, DUMMY_TRACKING_CODES } from '@/lib/services/reportService';
 import { PlusCircle, Inbox, Lock, ArrowRight, ArrowLeft, ShieldCheck, UserCheck } from 'lucide-react';
 import { useToast } from '@/components/ui/ToastProvider';
 import { 
@@ -22,8 +22,7 @@ import {
   setUserSession, 
   logoutUser, 
   AUTH_CHANGE_EVENT, 
-  UserSession, 
-  INITIAL_REGISTERED_CITIZENS 
+  UserSession 
 } from '@/lib/auth';
 
 export default function UserDashboardPage() {
@@ -63,20 +62,32 @@ export default function UserDashboardPage() {
 
       syncAuth();
 
-      // Muat data laporan
-      const storedReports = localStorage.getItem('trace_user_reports');
-      let customReports: Report[] = [];
-      if (storedReports) {
+      // Muat data laporan langsung dari Supabase
+      const loadDashboardReports = async () => {
         try {
-          customReports = JSON.parse(storedReports);
-        } catch {
-          // ignore
+          const dbReports = await getReports();
+          if (typeof window !== 'undefined') {
+            const storedReports = localStorage.getItem('trace_user_reports');
+            if (storedReports) {
+              try {
+                const local: Report[] = JSON.parse(storedReports);
+                const cleanLocal = local.filter((r) => !DUMMY_TRACKING_CODES.has(r.trackingCode) && !DUMMY_TRACKING_CODES.has(r.id));
+                const dbCodes = new Set(dbReports.map((r) => r.trackingCode));
+                const freshLocal = cleanLocal.filter((r) => !dbCodes.has(r.trackingCode));
+                setReports([...freshLocal, ...dbReports]);
+                return;
+              } catch {}
+            }
+          }
+          setReports(dbReports);
+        } catch (err) {
+          console.error('Error load dashboard reports:', err);
+        } finally {
+          setIsCheckingAuth(false);
         }
-      }
+      };
 
-      const baseReports = INITIAL_REPORTS.slice(0, 3);
-      setReports([...customReports, ...baseReports]);
-      setIsCheckingAuth(false);
+      loadDashboardReports();
 
       window.addEventListener(AUTH_CHANGE_EVENT, syncAuth);
       window.addEventListener('storage', syncAuth);
@@ -89,43 +100,18 @@ export default function UserDashboardPage() {
   }, []);
 
   // Handle Segarkan Data Laporan
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setIsRefreshing(true);
-    setTimeout(() => {
-      if (typeof window !== 'undefined') {
-        const storedReports = localStorage.getItem('trace_user_reports');
-        let customReports: Report[] = [];
-        if (storedReports) {
-          try {
-            customReports = JSON.parse(storedReports);
-          } catch {
-            // ignore
-          }
-        }
-        setReports([...customReports, ...INITIAL_REPORTS.slice(0, 3)]);
-      }
+    try {
+      const dbReports = await getReports();
+      setReports(dbReports);
+      toast.success('Status Terkini Dimuat', 'Data pemantauan pengaduan telah diperbarui dari server.');
+    } catch (err) {
+      console.error('Error refresh dashboard:', err);
+      toast.error('Gagal Memperbarui', 'Gagal memuat data dari server.');
+    } finally {
       setIsRefreshing(false);
-      toast.success('Status Terkini Dimuat', 'Data pemantauan pengaduan telah diperbarui.');
-    }, 500);
-  };
-
-  // Handle Masuk Cepat Akun Demo untuk Pengujian
-  const handleUseDemoAccount = () => {
-    const demo = INITIAL_REGISTERED_CITIZENS[0];
-    const demoProfile: UserSession = {
-      id: demo.id,
-      nama: demo.namaLengkap,
-      nikMasked: demo.nikMasked,
-      phoneMasked: demo.phoneMasked,
-      nikHash: demo.nikHash,
-      kecamatan: demo.kecamatan,
-      kelurahan: demo.kelurahan,
-      isLoggedIn: true,
-      loginAt: new Date().toISOString(),
-    };
-    setUserSession(demoProfile);
-    setUserInfo(demoProfile);
-    toast.success('Sesi Demo Aktif', `Selamat datang kembali, ${demo.namaLengkap}.`);
+    }
   };
 
   // Handle Log Out Sistem (Bebas Macet / Stuck)
@@ -217,18 +203,17 @@ export default function UserDashboardPage() {
               href="/masuk"
               className="w-full min-h-12 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-semibold text-xs sm:text-sm shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 focus-visible:outline-2 focus-visible:outline-blue-600"
             >
-              <span>Masuk dengan NIK & OTP</span>
+              <span>Masuk ke Akun Warga</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
 
-            <button
-              type="button"
-              onClick={handleUseDemoAccount}
+            <Link
+              href="/daftar"
               className="w-full min-h-11.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 focus-visible:outline-2 focus-visible:outline-slate-600"
             >
               <UserCheck className="w-4 h-4 text-slate-500" />
-              <span>Gunakan Sesi Demo (Budi Santoso)</span>
-            </button>
+              <span>Daftar Akun Baru (KTP Bengkulu)</span>
+            </Link>
 
             <div className="pt-2">
               <Link

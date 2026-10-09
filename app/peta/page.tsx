@@ -5,11 +5,11 @@ import FullCommunityMap from '@/components/map/FullCommunityMap';
 import PetaHeader from '@/components/peta/PetaHeader';
 import PetaReportList from '@/components/peta/PetaReportList';
 import PetaReportDetail from '@/components/peta/PetaReportDetail';
-import { INITIAL_REPORTS } from '@/lib/mockData';
 import { Report } from '@/lib/types';
+import { getReports, DUMMY_TRACKING_CODES } from '@/lib/services/reportService';
 
 export default function FullPetaPage() {
-  const [reports, setReports] = useState<Report[]>(INITIAL_REPORTS);
+  const [reports, setReports] = useState<Report[]>([]);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
 
   // Filter States
@@ -18,22 +18,40 @@ export default function FullPetaPage() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [mobileTab, setMobileTab] = useState<'map' | 'sidebar'>('map');
 
-  // Load custom reports if any from localStorage
+  // Load real-time reports from Supabase & Local Cache
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('trace_user_reports');
-      if (stored) {
-        try {
-          const custom = JSON.parse(stored);
-          const combined = [...custom, ...INITIAL_REPORTS];
-          queueMicrotask(() => {
-            setReports(combined);
-          });
-        } catch {
-          // ignore
+    let isMounted = true;
+    const fetchReports = async () => {
+      try {
+        const dbReports = await getReports();
+        if (!isMounted) return;
+
+        // Gabungkan dengan laporan lokal jika ada draft yang belum ter-push
+        if (typeof window !== 'undefined') {
+          const stored = localStorage.getItem('trace_user_reports');
+          if (stored) {
+            try {
+              const local: Report[] = JSON.parse(stored);
+              const cleanLocal = local.filter((r) => !DUMMY_TRACKING_CODES.has(r.trackingCode) && !DUMMY_TRACKING_CODES.has(r.id));
+              const dbCodes = new Set(dbReports.map((r) => r.trackingCode));
+              const freshLocal = cleanLocal.filter((r) => !dbCodes.has(r.trackingCode));
+              setReports([...freshLocal, ...dbReports]);
+              return;
+            } catch {}
+          }
         }
+
+        setReports(dbReports);
+      } catch (err) {
+        console.error('Error fetching reports for map:', err);
       }
-    }
+    };
+
+    fetchReports();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Filtered reports

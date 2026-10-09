@@ -7,7 +7,7 @@ interface HeroSectionProps {
   totalReports?: number;
 }
 
-export default function HeroSection({ totalReports = 6 }: HeroSectionProps) {
+export default function HeroSection({ totalReports = 0 }: HeroSectionProps) {
   return (
     <div className="flex flex-col justify-center space-y-5 sm:space-y-6">
       <div className="space-y-4 sm:space-y-5">

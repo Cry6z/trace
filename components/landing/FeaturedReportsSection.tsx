@@ -50,7 +50,29 @@ export default function FeaturedReportsSection({
         </div>
 
         {/* 3-Card Grid (Reflow: 1-col on phone, 2-col on tablet, 3-col on desktop) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
+        {featured.length === 0 ? (
+          <div className="bg-white rounded-3xl border border-slate-200/90 p-8 sm:p-12 text-center max-w-xl mx-auto shadow-2xs space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto text-xl font-bold">
+              ✓
+            </div>
+            <h3 className="text-base sm:text-lg font-bold text-slate-900">
+              Belum Ada Laporan Pengaduan Aktif
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+              Jadilah warga pertama yang melaporkan masalah fasilitas publik di lingkungan Anda untuk perbaikan bersama.
+            </p>
+            <div className="pt-2">
+              <Link
+                href="/dashboard/buat-laporan"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-md shadow-blue-500/20 active:scale-95"
+              >
+                <span>Buat Laporan Baru</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
           {featured.map((report) => (
             <div
               key={report.id}
@@ -146,7 +168,8 @@ export default function FeaturedReportsSection({
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        )}
 
       </div>
     </section>

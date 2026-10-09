@@ -48,8 +48,27 @@ export function mapSupabaseToReport(row: any, timelineRows: any[] = []): Report 
   };
 }
 
+// Daftar kode tracking dummy bawaan yang harus diabaikan/dibersihkan dari tampilan
+export const DUMMY_TRACKING_CODES = new Set([
+  'TRC-2026-0812',
+  'TRC-2026-0795',
+  'TRC-2026-0780',
+  'TRC-2026-0750',
+  'TRC-2026-0689',
+  'TRC-2026-0640',
+  'TRC-2026-0830',
+  'TRC-TEST-1327',
+  'rep-001',
+  'rep-002',
+  'rep-003',
+  'rep-004',
+  'rep-005',
+  'rep-006',
+  'rep-007',
+]);
+
 /**
- * Mengambil seluruh laporan dari Supabase secara real-time
+ * Mengambil seluruh laporan dari Supabase secara real-time (hanya laporan riil)
  */
 export async function getReports(): Promise<Report[]> {
   try {
@@ -59,8 +78,16 @@ export async function getReports(): Promise<Report[]> {
       .order('created_at', { ascending: false });
 
     if (reportsError || !reportsData || reportsData.length === 0) {
-      console.warn('Gagal / belum ada data Supabase, menggunakan cadangan lokal:', reportsError?.message);
-      return INITIAL_REPORTS;
+      return [];
+    }
+
+    // Bersihkan dari rekaman dummy bawaan sistem
+    const realReportsData = reportsData.filter(
+      (row) => !DUMMY_TRACKING_CODES.has(row.tracking_code) && !DUMMY_TRACKING_CODES.has(row.id)
+    );
+
+    if (realReportsData.length === 0) {
+      return [];
     }
 
     // Ambil timeline sekaligus
@@ -69,13 +96,13 @@ export async function getReports(): Promise<Report[]> {
       .select('*')
       .order('created_at', { ascending: true });
 
-    return reportsData.map((row) => {
+    return realReportsData.map((row) => {
       const relatedTimelines = (timelineData || []).filter((tl) => tl.report_id === row.id);
       return mapSupabaseToReport(row, relatedTimelines);
     });
   } catch (err) {
     console.error('Error getReports from Supabase:', err);
-    return INITIAL_REPORTS;
+    return [];
   }
 }
 
@@ -165,6 +192,82 @@ export async function upvoteReport(reportId: string, citizenId?: string): Promis
     return true;
   } catch (err) {
     console.error('Error upvoting report:', err);
+    return false;
+  }
+}
+
+/**
+ * Mengambil satu laporan berdasarkan ID atau Tracking Code
+ */
+export async function getReportById(idOrCode: string): Promise<Report | null> {
+  try {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrCode);
+    const query = supabase.from('reports').select('*');
+    const { data, error } = isUuid 
+      ? await query.eq('id', idOrCode).maybeSingle() 
+      : await query.ilike('tracking_code', idOrCode).maybeSingle();
+
+    if (error || !data || DUMMY_TRACKING_CODES.has(data.tracking_code) || DUMMY_TRACKING_CODES.has(data.id)) {
+      return null;
+    }
+
+    const { data: timelineData } = await supabase
+      .from('report_timeline')
+      .select('*')
+      .eq('report_id', data.id)
+      .order('created_at', { ascending: true });
+
+    return mapSupabaseToReport(data, timelineData || []);
+  } catch (err) {
+    console.error('Error getReportById:', err);
+    return null;
+  }
+}
+
+/**
+ * Memperbarui status penanganan laporan di Supabase & menambahkan riwayat timeline
+ */
+export async function updateReportStatusInSupabase(
+  reportId: string,
+  newStatus: string,
+  agency?: string,
+  note?: string,
+  resolvedImageUrl?: string,
+  timelineEvent?: { title: string; note: string; actor: string; evidenceUrl?: string }
+): Promise<boolean> {
+  try {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(reportId);
+    const updatePayload: any = {
+      status: newStatus,
+      updated_at: new Date().toISOString(),
+    };
+    if (agency) updatePayload.assigned_agency = agency;
+    if (note) updatePayload.admin_note = note;
+    if (resolvedImageUrl) updatePayload.resolved_image_url = resolvedImageUrl;
+
+    const query = supabase.from('reports').update(updatePayload);
+    const { data: updatedReport, error } = isUuid
+      ? await query.eq('id', reportId).select().maybeSingle()
+      : await query.eq('tracking_code', reportId).select().maybeSingle();
+
+    if (error) {
+      console.warn('Update report status warning di Supabase:', error.message);
+    }
+
+    if (timelineEvent && updatedReport) {
+      await supabase.from('report_timeline').insert({
+        report_id: updatedReport.id,
+        status: newStatus,
+        title: timelineEvent.title,
+        note: timelineEvent.note,
+        actor: timelineEvent.actor,
+        evidence_url: timelineEvent.evidenceUrl || null,
+      });
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Error updateReportStatusInSupabase:', err);
     return false;
   }
 }

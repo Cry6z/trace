@@ -14,12 +14,12 @@ import {
   Check,
   Clock,
 } from 'lucide-react';
-import { Report } from '@/lib/types';
+import { Report, ReportStatus } from '@/lib/types';
 import CategoryBadge from '@/components/ui/CategoryBadge';
 
 interface AdminInProgressViewProps {
   reports: Report[];
-  onOpenAction: (report: Report) => void;
+  onOpenAction: (report: Report, targetStatus?: ReportStatus) => void;
   onViewDetail: (report: Report) => void;
 }
 
@@ -203,7 +203,7 @@ export default function AdminInProgressView({
               <div className="flex sm:flex-row lg:flex-col items-stretch gap-2 shrink-0 border-t lg:border-t-0 pt-3 lg:pt-0 border-slate-100">
                 <button
                   type="button"
-                  onClick={() => onOpenAction(report)}
+                  onClick={() => onOpenAction(report, 'resolved')}
                   className="min-h-10 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-98"
                 >
                   <CheckCircle2 className="w-4 h-4" />
@@ -212,7 +212,7 @@ export default function AdminInProgressView({
 
                 <button
                   type="button"
-                  onClick={() => onOpenAction(report)}
+                  onClick={() => onOpenAction(report, 'in_progress')}
                   className="min-h-10 px-3.5 py-2 rounded-xl border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-700 hover:bg-blue-50/50 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <FileEdit className="w-3.5 h-3.5 text-slate-400" />

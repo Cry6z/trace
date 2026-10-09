@@ -18,8 +18,8 @@ import {
   findCitizen, 
   loginCitizenWithPin, 
   loginCitizenWithOtp, 
-  INITIAL_REGISTERED_CITIZENS,
-  CitizenAccount
+  CitizenAccount,
+  syncCitizensFromSupabase
 } from '@/lib/auth';
 import { requestOtp } from '@/lib/security/otpService';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -60,6 +60,11 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
       if (timer) clearInterval(timer);
     };
   }, [isOtpSent, countdown]);
+
+  // Sinkronkan akun terdaftar dari Supabase saat form dibuka
+  useEffect(() => {
+    syncCitizensFromSupabase().catch(() => {});
+  }, []);
 
   // Handle Pilih Akun Demo Cepat
   const handleSelectDemoAccount = (demo: CitizenAccount) => {
@@ -108,7 +113,7 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
   };
 
   // Handle Submit Login
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setIsNotRegistered(false);
@@ -119,8 +124,15 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
       return;
     }
 
-    // Periksa apakah akun terdaftar
-    const citizen = findCitizen(clean);
+    // Periksa apakah akun terdaftar (cek lokal & Supabase)
+    let citizen = findCitizen(clean);
+    if (!citizen) {
+      setIsLoading(true);
+      await syncCitizensFromSupabase();
+      citizen = findCitizen(clean);
+      setIsLoading(false);
+    }
+
     if (!citizen) {
       setIsNotRegistered(true);
       setErrorMsg('Identitas NIK atau No HP ini belum terdaftar dalam sistem TRACE.');
@@ -359,25 +371,7 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
         </button>
       </form>
 
-      {/* Akun Demo Pengujian (Discreet & Bersih, Tidak Menghabiskan Ruang Form) */}
-      <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
-        <span className="text-[11px] font-medium text-slate-400">
-          Akun Demo Uji Coba (PIN: 123456):
-        </span>
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {INITIAL_REGISTERED_CITIZENS.slice(0, 2).map((demo) => (
-            <button
-              key={demo.id}
-              type="button"
-              onClick={() => handleSelectDemoAccount(demo)}
-              className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg transition-colors cursor-pointer border border-blue-200/60"
-              title={`Isi otomatis akun ${demo.namaLengkap} (${demo.kecamatan})`}
-            >
-              {demo.namaLengkap.split(' ')[0]} ({demo.kecamatan})
-            </button>
-          ))}
-        </div>
-      </div>
+
 
       {/* Link ke Pendaftaran */}
       <div className="pt-1 text-center">

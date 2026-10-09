@@ -13,21 +13,6 @@ export interface OfficerProfile {
   instansi: string;
 }
 
-const DEMO_OFFICERS: OfficerProfile[] = [
-  {
-    nip: '198704122011011003',
-    nama: 'Ir. Hendra Gunawan, S.T.',
-    jabatan: 'Koordinator Bidang Bina Marga & Jalan',
-    instansi: 'Dinas Pekerjaan Umum & Penataan Ruang (PUPR)',
-  },
-  {
-    nip: '199008242015022001',
-    nama: 'Siti Rahmawati, S.Si.',
-    jabatan: 'Pengawas Pengelolaan Sampah & Drainase',
-    instansi: 'Dinas Lingkungan Hidup (DLH)',
-  },
-];
-
 interface AdminLoginFormProps {
   onLoginSuccess: (officer: OfficerProfile) => void;
 }
@@ -50,8 +35,7 @@ export default function AdminLoginForm({ onLoginSuccess }: AdminLoginFormProps) 
       return;
     }
 
-    const matched = DEMO_OFFICERS.find((o) => o.nip === nip.trim());
-    const officer: OfficerProfile = matched || {
+    const officer: OfficerProfile = {
       nip: nip.trim(),
       nama: 'Petugas Teknis Lapangan',
       jabatan: 'Verifikator & Operator Dinas',
@@ -60,15 +44,6 @@ export default function AdminLoginForm({ onLoginSuccess }: AdminLoginFormProps) 
 
     onLoginSuccess(officer);
     toast.success('Autentikasi Berhasil', `Selamat bertugas, ${officer.nama}`);
-  };
-
-  const handleQuickDemo = (officer: OfficerProfile) => {
-    setNip(officer.nip);
-    setPin('123456');
-    setInstansi(officer.instansi);
-    setErrorMsg('');
-    onLoginSuccess(officer);
-    toast.success('Masuk Sebagai Petugas Demo', `Selamat bertugas, ${officer.nama}`);
   };
 
   return (
@@ -187,31 +162,6 @@ export default function AdminLoginForm({ onLoginSuccess }: AdminLoginFormProps) 
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
-
-        {/* Pintasan Akun Demo Uji Coba (Ramping & Terstruktur, Tanpa Card Berlebihan) */}
-        <div className="pt-4 border-t border-slate-800">
-          <span className="text-[11px] font-medium text-slate-400 block mb-2">
-            Pintasan Cepat Akun Demo:
-          </span>
-          <div className="grid grid-cols-2 gap-2">
-            {DEMO_OFFICERS.map((officer) => (
-              <button
-                key={officer.nip}
-                type="button"
-                onClick={() => handleQuickDemo(officer)}
-                className="text-left p-2.5 rounded-xl bg-slate-950/60 hover:bg-slate-950 border border-slate-800 hover:border-blue-500/60 transition-colors cursor-pointer group"
-                title={`Masuk sebagai ${officer.nama}`}
-              >
-                <div className="text-xs font-semibold text-white group-hover:text-blue-400 transition-colors truncate">
-                  {officer.nama}
-                </div>
-                <div className="text-[10px] text-slate-400 truncate mt-0.5">
-                  {officer.instansi.includes('PUPR') ? 'Dinas PUPR' : 'Dinas DLH'}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );
