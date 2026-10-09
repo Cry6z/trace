@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/ui/ToastProvider';
 import { getUserSession, UserSession, AUTH_CHANGE_EVENT } from '@/lib/auth';
-import { submitReportToSupabase } from '@/lib/services/reportService';
+import { submitReportToSupabase, clearReportsCache } from '@/lib/services/reportService';
 
 export default function BuatLaporanPage() {
   const router = useRouter();
@@ -186,6 +186,8 @@ export default function BuatLaporanPage() {
         list.unshift(newReport);
         localStorage.setItem('trace_user_reports', JSON.stringify(list));
       }
+
+      clearReportsCache();
 
       setIsSubmitting(false);
       setIsSuccess(true);

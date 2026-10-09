@@ -32,22 +32,6 @@ export default function FullPetaPage() {
       try {
         const dbReports = await getReports();
         if (!isMounted) return;
-
-        // Gabungkan dengan laporan lokal jika ada draft yang belum ter-push
-        if (typeof window !== 'undefined') {
-          const stored = localStorage.getItem('trace_user_reports');
-          if (stored) {
-            try {
-              const local: Report[] = JSON.parse(stored);
-              const cleanLocal = local.filter((r) => !DUMMY_TRACKING_CODES.has(r.trackingCode) && !DUMMY_TRACKING_CODES.has(r.id));
-              const dbCodes = new Set(dbReports.map((r) => r.trackingCode));
-              const freshLocal = cleanLocal.filter((r) => !dbCodes.has(r.trackingCode));
-              setReports([...freshLocal, ...dbReports]);
-              return;
-            } catch {}
-          }
-        }
-
         setReports(dbReports);
       } catch (err) {
         console.error('Error fetching reports for map:', err);

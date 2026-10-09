@@ -9,7 +9,7 @@ import HeroSection from '@/components/landing/HeroSection';
 import FeaturedReportsSection from '@/components/landing/FeaturedReportsSection';
 import HowItWorksSection from '@/components/landing/HowItWorksSection';
 import { Report } from '@/lib/types';
-import { getReports } from '@/lib/services/reportService';
+import { getReports, getCachedReports } from '@/lib/services/reportService';
 
 export default function HomePage() {
   const [reports, setReports] = useState<Report[]>([]);
@@ -17,6 +17,13 @@ export default function HomePage() {
 
   useEffect(() => {
     let isMounted = true;
+
+    // Hidrasi instan dari cache & draft lokal (0ms)
+    const cached = getCachedReports();
+    if (cached.length > 0) {
+      setReports(cached);
+    }
+
     const fetchReports = async () => {
       try {
         const data = await getReports();

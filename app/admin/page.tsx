@@ -189,7 +189,8 @@ export default function AdminDashboardPage() {
         actionAgency,
         actionNote || undefined,
         resolvedImg,
-        newTimelineEvent
+        newTimelineEvent,
+        selectedReport.trackingCode
       );
     } catch (err) {
       console.error('Gagal sinkron update status ke Supabase:', err);

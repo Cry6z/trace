@@ -75,23 +75,46 @@ export const REPORTS_CACHE_KEY = 'trace_reports_cache_v1';
 
 /**
  * Mengambil cache laporan dari memori atau localStorage secara instan (0ms)
+ * Otomatis menggabungkan data cache cloud dan laporan lokal pengguna
  */
 export function getCachedReports(): Report[] {
+  let list: Report[] = [];
+
   if (cachedReportsMemory && cachedReportsMemory.length > 0) {
-    return cachedReportsMemory;
-  }
-  if (typeof window !== 'undefined') {
+    list = [...cachedReportsMemory];
+  } else if (typeof window !== 'undefined') {
     try {
       const raw = localStorage.getItem(REPORTS_CACHE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          cachedReportsMemory = parsed;
-          return parsed;
+          list = parsed;
         }
       }
     } catch {}
   }
+
+  // Gabungkan selalu dengan draft/laporan lokal (trace_user_reports) agar instan 0ms
+  if (typeof window !== 'undefined') {
+    try {
+      const storedDrafts = localStorage.getItem('trace_user_reports');
+      if (storedDrafts) {
+        const local: Report[] = JSON.parse(storedDrafts);
+        const cleanLocal = local.filter((r) => !DUMMY_TRACKING_CODES.has(r.trackingCode) && !DUMMY_TRACKING_CODES.has(r.id));
+        const existingCodes = new Set(list.map((r) => r.trackingCode));
+        const freshLocal = cleanLocal.filter((r) => !existingCodes.has(r.trackingCode));
+        if (freshLocal.length > 0) {
+          list = [...freshLocal, ...list];
+        }
+      }
+    } catch {}
+  }
+
+  if (list.length > 0) {
+    cachedReportsMemory = list;
+    return list;
+  }
+
   return [];
 }
 
@@ -109,6 +132,37 @@ export function clearReportsCache(): void {
 }
 
 /**
+ * Sinkronisasi otomatis laporan lokal ke Supabase di latar belakang
+ */
+export async function syncMissingReportsToSupabase(unpushedReports: Report[]): Promise<void> {
+  if (!unpushedReports || unpushedReports.length === 0) return;
+  for (const r of unpushedReports) {
+    try {
+      await submitReportToSupabase({
+        trackingCode: r.trackingCode,
+        title: r.title,
+        description: r.description,
+        category: r.category,
+        customCategory: r.customCategory,
+        status: r.status,
+        urgency: r.urgency,
+        latitude: r.latitude,
+        longitude: r.longitude,
+        address: r.address,
+        district: r.district,
+        village: r.village,
+        imageUrl: r.imageUrl,
+        reporterAlias: r.reporterAlias,
+        reporterPhoneMasked: r.reporterPhoneMasked,
+        reporterNikMasked: r.reporterNikMasked,
+      });
+    } catch (e) {
+      console.warn('Auto-sync report ke Supabase ditunda:', e);
+    }
+  }
+}
+
+/**
  * Mengambil seluruh laporan dari Supabase secara paralel & efisien
  * Menggunakan Promise.all untuk memotong latensi hingga 75%
  */
@@ -117,7 +171,7 @@ export async function getReports(options: { forceRefresh?: boolean } = {}): Prom
   const now = Date.now();
 
   // Kembalikan in-memory cache jika masih segar dan bukan paksaan segarkan
-  if (!forceRefresh && cachedReportsMemory && (now - lastFetchTimestamp < CACHE_TTL_MS)) {
+  if (!forceRefresh && cachedReportsMemory && cachedReportsMemory.length > 0 && (now - lastFetchTimestamp < CACHE_TTL_MS)) {
     return cachedReportsMemory;
   }
 
@@ -137,18 +191,14 @@ export async function getReports(options: { forceRefresh?: boolean } = {}): Prom
     const { data: reportsData, error: reportsError } = reportsResult;
     const { data: timelineData } = timelineResult;
 
-    if (reportsError || !reportsData || reportsData.length === 0) {
-      return cachedReportsMemory || getCachedReports();
+    if (reportsError || !reportsData) {
+      return getCachedReports();
     }
 
     // Bersihkan dari rekaman dummy bawaan sistem
     const realReportsData = reportsData.filter(
       (row) => !DUMMY_TRACKING_CODES.has(row.tracking_code) && !DUMMY_TRACKING_CODES.has(row.id)
     );
-
-    if (realReportsData.length === 0) {
-      return [];
-    }
 
     // Index timeline dengan Map O(1) agar cepat dan hemat komputasi CPU
     const timelineByReportId = new Map<string, any[]>();
@@ -163,10 +213,28 @@ export async function getReports(options: { forceRefresh?: boolean } = {}): Prom
       }
     }
 
-    const mapped = realReportsData.map((row) => {
+    let mapped = realReportsData.map((row) => {
       const relatedTimelines = timelineByReportId.get(row.id) || [];
       return mapSupabaseToReport(row, relatedTimelines);
     });
+
+    // Gabungkan dengan laporan lokal jika ada yang belum ter-push ke Supabase
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('trace_user_reports');
+        if (stored) {
+          const local: Report[] = JSON.parse(stored);
+          const cleanLocal = local.filter((r) => !DUMMY_TRACKING_CODES.has(r.trackingCode) && !DUMMY_TRACKING_CODES.has(r.id));
+          const dbCodes = new Set(mapped.map((r) => r.trackingCode));
+          const freshLocal = cleanLocal.filter((r) => !dbCodes.has(r.trackingCode));
+          if (freshLocal.length > 0) {
+            mapped = [...freshLocal, ...mapped];
+            // Auto-sync ke cloud Supabase di latar belakang
+            syncMissingReportsToSupabase(freshLocal);
+          }
+        }
+      } catch {}
+    }
 
     // Simpan ke in-memory cache & browser storage
     cachedReportsMemory = mapped;
@@ -180,7 +248,7 @@ export async function getReports(options: { forceRefresh?: boolean } = {}): Prom
     return mapped;
   } catch (err) {
     console.error('Error getReports from Supabase:', err);
-    return cachedReportsMemory || getCachedReports();
+    return getCachedReports();
   }
 }
 
@@ -314,7 +382,8 @@ export async function updateReportStatusInSupabase(
   agency?: string,
   note?: string,
   resolvedImageUrl?: string,
-  timelineEvent?: { title: string; note: string; actor: string; evidenceUrl?: string }
+  timelineEvent?: { title: string; note: string; actor: string; evidenceUrl?: string },
+  trackingCode?: string
 ): Promise<boolean> {
   try {
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(reportId);
@@ -327,9 +396,10 @@ export async function updateReportStatusInSupabase(
     if (resolvedImageUrl) updatePayload.resolved_image_url = resolvedImageUrl;
 
     const query = supabase.from('reports').update(updatePayload);
+    const codeToSearch = trackingCode || reportId;
     const { data: updatedReport, error } = isUuid
       ? await query.eq('id', reportId).select().maybeSingle()
-      : await query.eq('tracking_code', reportId).select().maybeSingle();
+      : await query.eq('tracking_code', codeToSearch).select().maybeSingle();
 
     if (error) {
       console.warn('Update report status warning di Supabase:', error.message);
