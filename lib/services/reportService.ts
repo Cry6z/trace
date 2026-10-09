@@ -26,6 +26,7 @@ export function mapSupabaseToReport(row: any, timelineRows: any[] = []): Report 
     title: row.title,
     description: row.description,
     category: row.category,
+    customCategory: row.custom_category || undefined,
     status: row.status,
     urgency: row.urgency,
     latitude: Number(row.latitude),
@@ -83,27 +84,45 @@ export async function getReports(): Promise<Report[]> {
  */
 export async function submitReportToSupabase(newReport: Omit<Report, 'id' | 'createdAt' | 'updatedAt' | 'upvotes' | 'timeline'>): Promise<{ success: boolean; data?: Report; error?: string }> {
   try {
-    const { data, error } = await supabase
+    const insertPayload: any = {
+      tracking_code: newReport.trackingCode,
+      title: newReport.title,
+      description: newReport.description,
+      category: newReport.category,
+      custom_category: newReport.customCategory || null,
+      status: newReport.status || 'pending',
+      urgency: newReport.urgency,
+      latitude: newReport.latitude,
+      longitude: newReport.longitude,
+      address: newReport.address,
+      district: newReport.district,
+      village: newReport.village,
+      image_url: newReport.imageUrl,
+      reporter_alias: newReport.reporterAlias,
+      reporter_phone_masked: newReport.reporterPhoneMasked,
+      reporter_nik_masked: newReport.reporterNikMasked,
+    };
+
+    let { data, error } = await supabase
       .from('reports')
-      .insert({
-        tracking_code: newReport.trackingCode,
-        title: newReport.title,
-        description: newReport.description,
-        category: newReport.category,
-        status: newReport.status || 'pending',
-        urgency: newReport.urgency,
-        latitude: newReport.latitude,
-        longitude: newReport.longitude,
-        address: newReport.address,
-        district: newReport.district,
-        village: newReport.village,
-        image_url: newReport.imageUrl,
-        reporter_alias: newReport.reporterAlias,
-        reporter_phone_masked: newReport.reporterPhoneMasked,
-        reporter_nik_masked: newReport.reporterNikMasked,
-      })
+      .insert(insertPayload)
       .select()
       .single();
+
+    // Fallback jika database Supabase belum menjalankan migrasi kolom custom_category atau enum lainnya
+    if (error && (error.message.includes('custom_category') || error.message.includes('enum') || error.message.includes('column'))) {
+      const fallbackPayload = { ...insertPayload };
+      delete fallbackPayload.custom_category;
+      if (fallbackPayload.category === 'lainnya') {
+        fallbackPayload.category = 'fasilitas';
+        if (newReport.customCategory) {
+          fallbackPayload.title = `[${newReport.customCategory}] ${fallbackPayload.title}`;
+        }
+      }
+      const retry = await supabase.from('reports').insert(fallbackPayload).select().single();
+      data = retry.data;
+      error = retry.error;
+    }
 
     if (error || !data) {
       return { success: false, error: error?.message || 'Gagal menyimpan laporan' };

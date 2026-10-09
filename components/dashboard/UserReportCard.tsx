@@ -81,7 +81,7 @@ export default function UserReportCard({
               className="w-2 h-2 rounded-full shrink-0"
               style={{ backgroundColor: category.colorHex }}
             />
-            {category.name}
+            {report.customCategory || category.name}
           </span>
 
           {/* Kode Tiket Pelacakan */}

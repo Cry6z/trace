@@ -4,7 +4,8 @@ export type IssueCategory =
   | 'banjir'      // Banjir & Genangan Air (Ocean Azure)
   | 'sampah'      // Kebersihan & Sampah Liar (Emerald Green)
   | 'limbah'      // Limbah & Pencemaran (Deep Violet)
-  | 'fasilitas';  // Fasilitas Umum Lainnya (Slate Indigo)
+  | 'fasilitas'   // Fasilitas Umum (Slate Indigo)
+  | 'lainnya';    // Kategori Lainnya (Teal - Kustom Pengguna)
 
 export type ReportStatus = 
   | 'pending'       // Menunggu Verifikasi
@@ -30,6 +31,7 @@ export interface Report {
   title: string;
   description: string;
   category: IssueCategory;
+  customCategory?: string; // Kategori khusus yang diinput pengguna jika memilih kustom/lainnya
   status: ReportStatus;
   urgency: UrgencyLevel;
   latitude: number;
@@ -120,7 +122,7 @@ export const CATEGORIES_CONFIG: Record<IssueCategory, CategoryMeta> = {
   },
   fasilitas: {
     id: 'fasilitas',
-    name: 'Fasilitas Umum Lainnya',
+    name: 'Fasilitas Umum',
     description: 'Halte bus, jembatan penyeberangan (JPO), rambu roboh',
     colorHex: '#6366F1',
     bgClass: 'bg-indigo-50',
@@ -128,6 +130,17 @@ export const CATEGORIES_CONFIG: Record<IssueCategory, CategoryMeta> = {
     borderClass: 'border-indigo-200',
     pinBadgeClass: 'bg-indigo-500',
     iconName: 'Building2',
+  },
+  lainnya: {
+    id: 'lainnya',
+    name: 'Kategori Lainnya',
+    description: 'Masalah fasilitas publik lainnya yang dapat Anda kustom sendiri',
+    colorHex: '#0D9488',
+    bgClass: 'bg-teal-50',
+    textClass: 'text-teal-600',
+    borderClass: 'border-teal-200',
+    pinBadgeClass: 'bg-teal-500',
+    iconName: 'Sparkles',
   },
 };
 
@@ -172,4 +185,5 @@ export const LEGEND_SHORT_NAMES: Record<string, string> = {
   sampah: 'Kebersihan',
   limbah: 'Limbah',
   fasilitas: 'Fasilitas',
+  lainnya: 'Lainnya',
 };

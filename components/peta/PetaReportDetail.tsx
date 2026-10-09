@@ -106,7 +106,7 @@ export default function PetaReportDetail({
             }}
           />
           <div className="absolute top-3 left-3">
-            <CategoryBadge category={report.category} />
+            <CategoryBadge category={report.category} customCategory={report.customCategory} />
           </div>
           <div className="absolute top-3 right-3">
             <StatusBadge status={report.status} />

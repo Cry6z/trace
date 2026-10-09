@@ -37,6 +37,7 @@ export default function BuatLaporanPage() {
 
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [category, setCategory] = useState<IssueCategory>('jalan');
+  const [customCategory, setCustomCategory] = useState<string>('');
   const [urgency, setUrgency] = useState<UrgencyLevel>('sedang');
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
@@ -97,8 +98,7 @@ export default function BuatLaporanPage() {
       setCurrentStep(2);
     } else if (currentStep === 2) {
       if (!address.trim()) {
-        toast.error('Alamat Belum Diisi', 'Mohon isi detail alamat atau gunakan tombol GPS.');
-        return;
+        setAddress(`Titik Koordinat (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})`);
       }
       setCurrentStep(3);
     }
@@ -139,6 +139,9 @@ export default function BuatLaporanPage() {
       title: title || 'Laporan Pengaduan Warga',
       description: description || 'Detail masalah fasilitas publik dilaporkan oleh warga.',
       category,
+      customCategory: (category === 'lainnya' || category === 'fasilitas') && customCategory.trim() 
+        ? customCategory.trim() 
+        : undefined,
       status: 'pending',
       urgency,
       latitude: coords.lat,
@@ -208,29 +211,8 @@ export default function BuatLaporanPage() {
       <div className="min-h-screen bg-slate-50 flex flex-col antialiased">
         <Navbar />
 
-        <main className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8">
-          {/* Navigasi Balik ke Landing Page di atas kartu */}
-          <div className="w-full max-w-md mb-3 flex items-center justify-start">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-blue-600 transition-colors group"
-            >
-              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              <span>Kembali ke Landing Page</span>
-            </Link>
-          </div>
-
-          <div className="relative w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xl space-y-6 text-center animate-in zoom-in-95 duration-200">
-            {/* Tombol Silang (Tutup & Kembali ke Landing Page) */}
-            <Link
-              href="/"
-              title="Kembali ke Landing Page"
-              aria-label="Kembali ke Landing Page"
-              className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </Link>
-
+        <main className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+          <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xl space-y-6 text-center animate-in zoom-in-95 duration-200">
             {/* Icon Gembok & Header */}
             <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center mx-auto shadow-xs">
               <Lock className="w-8 h-8 stroke-[1.8]" />
@@ -253,8 +235,8 @@ export default function BuatLaporanPage() {
               </span>
             </div>
 
-            {/* Tombol Masuk, Daftar, dan Kembali ke Landing Page */}
-            <div className="space-y-2.5 pt-2">
+            {/* Tombol Masuk & Daftar */}
+            <div className="space-y-3 pt-2">
               <Link
                 href="/masuk?redirect=/dashboard/buat-laporan"
                 className="w-full min-h-12 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-semibold text-xs sm:text-sm shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
@@ -271,27 +253,12 @@ export default function BuatLaporanPage() {
                 <span>Daftar Akun Baru (KTP Bengkulu)</span>
               </Link>
 
-              <Link
-                href="/"
-                className="w-full min-h-11.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-700 hover:text-slate-900 font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <ArrowLeft className="w-4 h-4 text-slate-500" />
-                <span>Kembali ke Landing Page</span>
-              </Link>
-
-              <div className="pt-2 flex items-center justify-center gap-3 text-xs">
+              <div className="pt-2">
                 <Link
                   href="/"
-                  className="text-slate-400 hover:text-slate-700 font-medium transition-colors"
+                  className="inline-block text-xs text-slate-400 hover:text-slate-700 font-medium transition-colors"
                 >
                   &larr; Beranda Utama
-                </Link>
-                <span className="text-slate-300">•</span>
-                <Link
-                  href="/peta"
-                  className="text-slate-400 hover:text-slate-700 font-medium transition-colors"
-                >
-                  Peta Publik &rarr;
                 </Link>
               </div>
             </div>
@@ -384,6 +351,8 @@ export default function BuatLaporanPage() {
                 <CategorySelector
                   selectedCategory={category}
                   onSelectCategory={setCategory}
+                  customCategory={customCategory}
+                  onCustomCategoryChange={setCustomCategory}
                 />
 
                 <div className="pt-4 border-t border-slate-100">

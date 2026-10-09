@@ -21,9 +21,12 @@ export function getCategorySvgPath(category: IssueCategory): string {
       // Biohazard / Flask
       return '<path d="M10 2v7.31L4.67 19.34A2 2 0 0 0 6.4 22h11.2a2 2 0 0 0 1.73-2.66L14 9.31V2m-5 0h6m-7 12h8" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
     case 'fasilitas':
-    default:
       // Building / Infrastructure
       return '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18ZM6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2Zm12 0h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2Zm-8-4h.01M14 8h.01M10 12h.01M14 12h.01M10 16h.01M14 16h.01" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+    case 'lainnya':
+    default:
+      // Sparkles / Custom Pin Icon
+      return '<path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
   }
 }
 

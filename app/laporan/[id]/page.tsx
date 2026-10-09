@@ -212,7 +212,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
             {/* Header Informasi Utama */}
             <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
               <div className="flex flex-wrap items-center gap-2">
-                <CategoryBadge category={report.category} />
+                <CategoryBadge category={report.category} customCategory={report.customCategory} />
                 <StatusBadge status={report.status} />
                 {report.urgency === 'darurat' && (
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-600 text-white shadow-2xs">

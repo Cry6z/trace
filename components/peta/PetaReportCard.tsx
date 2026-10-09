@@ -50,7 +50,7 @@ export default function PetaReportCard({
         {/* Info */}
         <div className="flex-1 min-w-0 space-y-1">
           <div className="flex items-center justify-between gap-1">
-            <CategoryBadge category={report.category} short />
+            <CategoryBadge category={report.category} customCategory={report.customCategory} short />
             <StatusBadge status={report.status} showDot={false} />
           </div>
 

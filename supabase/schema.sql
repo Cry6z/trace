@@ -15,7 +15,8 @@ DO $$ BEGIN
     'banjir',      -- Banjir & Genangan Air
     'sampah',      -- Kebersihan & Sampah Liar
     'limbah',      -- Limbah & Pencemaran Lingkungan
-    'fasilitas'    -- Fasilitas Publik Lainnya
+    'fasilitas',   -- Fasilitas Publik
+    'lainnya'      -- Kategori Lainnya (Kustom Pengguna)
   );
 EXCEPTION
   WHEN duplicate_object THEN null;
@@ -95,6 +96,7 @@ CREATE TABLE IF NOT EXISTS reports (
   title TEXT NOT NULL,
   description TEXT NOT NULL,
   category issue_category NOT NULL DEFAULT 'jalan',
+  custom_category TEXT,                                -- Nama kategori kustom yang diisi mandiri oleh pelapor jika memilih lainnya
   status report_status NOT NULL DEFAULT 'pending',
   urgency urgency_level NOT NULL DEFAULT 'sedang',
   latitude DOUBLE PRECISION NOT NULL,                 -- Koordinat lintang Kota Bengkulu (~ -3.8)

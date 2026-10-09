@@ -141,7 +141,7 @@ export default function AdminReportsTable({
 
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <CategoryBadge category={report.category} short />
+                    <CategoryBadge category={report.category} customCategory={report.customCategory} short />
                     <span className="text-[11px] text-slate-400 font-mono">
                       {new Date(report.createdAt).toLocaleDateString('id-ID', { dateStyle: 'medium' })}
                     </span>
@@ -204,7 +204,7 @@ export default function AdminReportsTable({
                     {/* Kategori & Masalah */}
                     <td className="py-3.5 px-5 max-w-sm">
                       <div className="flex items-center gap-2 mb-1">
-                        <CategoryBadge category={report.category} short />
+                        <CategoryBadge category={report.category} customCategory={report.customCategory} short />
                       </div>
                       <div className="font-bold text-slate-900 leading-snug line-clamp-1">{report.title}</div>
                       <div className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{report.description}</div>

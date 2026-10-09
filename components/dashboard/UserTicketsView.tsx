@@ -98,7 +98,7 @@ export default function UserTicketsView({
                     className="w-1.5 h-1.5 rounded-full"
                     style={{ backgroundColor: category.colorHex }}
                   />
-                  <span>{category.name}</span>
+                  <span>{report.customCategory || category.name}</span>
                 </span>
 
                 <button
@@ -171,7 +171,7 @@ export default function UserTicketsView({
                         className="w-1.5 h-1.5 rounded-full"
                         style={{ backgroundColor: category.colorHex }}
                       />
-                      <span>{category.name}</span>
+                      <span>{report.customCategory || category.name}</span>
                     </span>
                   </td>
 

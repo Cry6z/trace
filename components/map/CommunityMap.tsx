@@ -513,7 +513,7 @@ export default function CommunityMap({
                       CATEGORIES_CONFIG[activePreviewReport.category]?.colorHex || '#3b82f6',
                   }}
                 >
-                  {CATEGORIES_CONFIG[activePreviewReport.category]?.name.split(' ')[0]}
+                  {activePreviewReport.customCategory || CATEGORIES_CONFIG[activePreviewReport.category]?.name.split(' ')[0]}
                 </span>
               </div>
             </div>
