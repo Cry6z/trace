@@ -20,7 +20,7 @@ export default function CategoryBadge({
 
   return (
     <span
-      className={`inline-flex items-center font-bold rounded-full text-white shadow-xs ${sizeClasses} ${className}`}
+      className={`inline-flex items-center font-bold rounded-md text-white shadow-xs ${sizeClasses} ${className}`}
       style={{ backgroundColor: meta.colorHex }}
     >
       {displayName}

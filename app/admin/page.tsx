@@ -1,28 +1,34 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import AdminSidebar from '@/components/admin/AdminSidebar';
+import AdminSidebar, { AdminMenuId } from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import AdminStatsCards from '@/components/admin/AdminStatsCards';
-import AdminFilterBar from '@/components/admin/AdminFilterBar';
 import AdminReportsTable from '@/components/admin/AdminReportsTable';
 import AdminActionModal from '@/components/admin/AdminActionModal';
 import AdminLoginForm, { OfficerProfile } from '@/components/admin/AdminLoginForm';
 import ReportDetailModal from '@/components/ui/ReportDetailModal';
+import AdminOverviewView from '@/components/admin/views/AdminOverviewView';
+import AdminPendingQueueView from '@/components/admin/views/AdminPendingQueueView';
+import AdminInProgressView from '@/components/admin/views/AdminInProgressView';
+import AdminResolvedView from '@/components/admin/views/AdminResolvedView';
+import AdminMapDistributionView from '@/components/admin/views/AdminMapDistributionView';
 import { INITIAL_REPORTS } from '@/lib/mockData';
 import { Report, ReportStatus } from '@/lib/types';
-import { ShieldCheck } from 'lucide-react';
 
 export default function AdminDashboardPage() {
   const [officer, setOfficer] = useState<OfficerProfile | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
 
+  // Active Menu: Default ke 'dashboard' (Dashboard Awal)
+  const [activeMenu, setActiveMenu] = useState<AdminMenuId>('dashboard');
+
   const [reports, setReports] = useState<Report[]>(INITIAL_REPORTS);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [detailModalReport, setDetailModalReport] = useState<Report | null>(null);
 
-  // Filter States
+  // Filter States untuk Tabel Semua Pengaduan
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -188,12 +194,12 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/70 flex antialiased">
-      {/* 1. Sidebar Khusus Petugas Dinas */}
+    <div className="h-screen w-full overflow-hidden flex bg-slate-50/70 antialiased">
+      {/* 1. Sidebar Khusus Petugas Dinas (Terkunci Diam di Tempat Saat Scroll) */}
       {officer && (
         <AdminSidebar
-          statusFilter={statusFilter}
-          onStatusChange={setStatusFilter}
+          activeMenu={activeMenu}
+          onMenuSelect={(menu) => setActiveMenu(menu)}
           officer={officer}
           onLogout={handleLogout}
           isMobileOpen={isMobileSidebarOpen}
@@ -205,67 +211,101 @@ export default function AdminDashboardPage() {
         />
       )}
 
-      {/* 2. Area Konten Utama Kanan (Spacious & Breathable Layout) */}
-      <div className="flex-1 md:pl-72 flex flex-col min-h-screen">
+      {/* 2. Area Konten Utama Kanan: Memiliki Independent Scrollbar Sehingga Sidebar Selalu Diam di Tempat */}
+      <div className="flex-1 h-full min-w-0 flex flex-col overflow-y-auto">
         {/* Header Atas Panel Dinas */}
         {officer && (
           <AdminHeader
             officer={officer}
+            activeMenu={activeMenu}
             onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
             onLogout={handleLogout}
           />
         )}
 
-        {/* Konten Halaman Admin */}
-        <main className="flex-1 p-5 sm:p-8 lg:p-10 max-w-7xl w-full mx-auto space-y-8 sm:space-y-10">
-          {/* Banner Selamat Datang Petugas */}
-          <section className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold">
-                  <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Portal Komando Petugas Dinas Kota Bengkulu</span>
-                </span>
-              </div>
-              <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-                Pusat Disposisi & Eksekusi Lapangan
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-500 max-w-2xl leading-relaxed">
-                Tinjau bukti foto dari warga, ubah status penanganan lapangan secara transparan, dan unggah dokumentasi perbaikan setelah pekerjaan selesai.
-              </p>
-            </div>
-
-            <div className="text-xs font-medium text-slate-500 bg-slate-50 p-4 rounded-2xl border border-slate-200/80 shrink-0">
-              <div>Status Filter: <strong className="text-blue-700 uppercase">{statusFilter}</strong></div>
-              <div className="mt-1">Menampilkan: <strong className="text-slate-800">{filteredReports.length}</strong> laporan</div>
-            </div>
-          </section>
-
-          {/* Counter Stats Admin */}
-          <AdminStatsCards
-            pendingCount={pendingCount}
-            inProgressCount={inProgressCount}
-            resolvedCount={resolvedCount}
-          />
-
-          {/* Filter & Search Bar */}
-          <AdminFilterBar
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            statusFilter={statusFilter}
-            onStatusChange={setStatusFilter}
-            categoryFilter={categoryFilter}
-            onCategoryChange={setCategoryFilter}
-          />
-
-          {/* Table List of Reports (Spacious Table View) */}
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <AdminReportsTable
-              reports={filteredReports}
+        {/* Konten Halaman Admin Berdasarkan Menu yang Dipilih */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6 pb-16">
+          {/* MENU 1: DASHBOARD UTAMA (RINGKASAN & METRIK AWAL) */}
+          {activeMenu === 'dashboard' && (
+            <AdminOverviewView
+              reports={reports}
+              officer={officer!}
+              onNavigateMenu={(menuId) => setActiveMenu(menuId as AdminMenuId)}
               onOpenAction={handleOpenActionModal}
-              onViewDetail={(r: Report) => setDetailModalReport(r)}
+              onViewDetail={(r) => setDetailModalReport(r)}
             />
-          </div>
+          )}
+
+          {/* MENU 2: SEMUA PENGADUAN (DATABASE TABEL & MULTI-FILTER) */}
+          {activeMenu === 'all_reports' && (
+            <>
+              {/* Metrik Cepat */}
+              <AdminStatsCards
+                pendingCount={pendingCount}
+                inProgressCount={inProgressCount}
+                resolvedCount={resolvedCount}
+                totalCount={reports.length}
+                activeFilter={statusFilter}
+                onSelectFilter={(st) => setStatusFilter(statusFilter === st ? 'all' : st)}
+              />
+
+              {/* Workspace Terpadu Tabel Pengaduan */}
+              <AdminReportsTable
+                reports={filteredReports}
+                totalReportsCount={reports.length}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                statusFilter={statusFilter}
+                onStatusChange={setStatusFilter}
+                categoryFilter={categoryFilter}
+                onCategoryChange={setCategoryFilter}
+                onOpenAction={handleOpenActionModal}
+                onViewDetail={(r: Report) => setDetailModalReport(r)}
+                onResetFilters={() => {
+                  setSearchQuery('');
+                  setStatusFilter('all');
+                  setCategoryFilter('all');
+                }}
+              />
+            </>
+          )}
+
+          {/* MENU 3: ANTREAN VERIFIKASI (TRIAGE & VALIDASI MASUK) */}
+          {activeMenu === 'pending' && (
+            <AdminPendingQueueView
+              reports={reports}
+              onOpenAction={handleOpenActionModal}
+              onViewDetail={(r) => setDetailModalReport(r)}
+            />
+          )}
+
+          {/* MENU 4: SEDANG DITANGANI (MONITORING PENGERJAAN LAPANGAN) */}
+          {activeMenu === 'in_progress' && (
+            <AdminInProgressView
+              reports={reports}
+              onOpenAction={handleOpenActionModal}
+              onViewDetail={(r) => setDetailModalReport(r)}
+            />
+          )}
+
+          {/* MENU 5: TUNTAS SELESAI (ARSIP & BUKTI FISIK SEBELUM/SESUDAH) */}
+          {activeMenu === 'resolved' && (
+            <AdminResolvedView
+              reports={reports}
+              onViewDetail={(r) => setDetailModalReport(r)}
+            />
+          )}
+
+          {/* MENU 6: SEBARAN WILAYAH & GIS (ANALISIS PER KECAMATAN) */}
+          {activeMenu === 'map_distribution' && (
+            <AdminMapDistributionView
+              reports={reports}
+              onNavigateToReports={(cat) => {
+                if (cat) setCategoryFilter(cat);
+                setActiveMenu('all_reports');
+              }}
+            />
+          )}
         </main>
       </div>
 

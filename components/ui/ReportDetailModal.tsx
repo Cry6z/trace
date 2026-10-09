@@ -97,7 +97,7 @@ export default function ReportDetailModal({ report, onClose, onUpvote }: ReportD
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] overflow-hidden flex items-center justify-center p-3 sm:p-6 pointer-events-auto"
+      className="fixed inset-0 z-100 overflow-hidden flex items-center justify-center p-3 sm:p-6 pointer-events-auto"
       style={{
         position: 'fixed',
         top: 0,
@@ -165,7 +165,7 @@ export default function ReportDetailModal({ report, onClose, onUpvote }: ReportD
         {/* Modal Scrollable Content - Sleek Minimal Scrollbar & Generous Padding */}
         <div className="modal-scroll-area flex-1 min-h-0 overflow-y-auto p-6 sm:p-8 space-y-6">
           {/* Main Photo Banner */}
-          <div className="relative rounded-2xl overflow-hidden bg-slate-100 aspect-16/9 sm:aspect-21/9 max-h-60 sm:max-h-72 border border-slate-200/80 shadow-2xs shrink-0">
+          <div className="relative rounded-2xl overflow-hidden bg-slate-100 aspect-video sm:aspect-21/9 max-h-60 sm:max-h-72 border border-slate-200/80 shadow-2xs shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={report.imageUrl}

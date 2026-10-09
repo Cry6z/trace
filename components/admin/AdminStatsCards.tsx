@@ -1,60 +1,77 @@
 import React from 'react';
-import { AlertCircle, Clock, CheckCircle2 } from 'lucide-react';
 
 interface AdminStatsCardsProps {
   pendingCount: number;
   inProgressCount: number;
   resolvedCount: number;
+  totalCount?: number;
+  onSelectFilter?: (status: string) => void;
+  activeFilter?: string;
 }
 
 export default function AdminStatsCards({
   pendingCount,
   inProgressCount,
   resolvedCount,
+  onSelectFilter,
+  activeFilter = 'all',
 }: AdminStatsCardsProps) {
+  const METRICS = [
+    {
+      id: 'pending',
+      label: 'Butuh Verifikasi',
+      count: pendingCount,
+      dot: 'bg-amber-500',
+      desc: 'Laporan baru warga',
+    },
+    {
+      id: 'in_progress',
+      label: 'Sedang Ditangani',
+      count: inProgressCount,
+      dot: 'bg-blue-600',
+      desc: 'Proses dinas teknis',
+    },
+    {
+      id: 'resolved',
+      label: 'Selesai Tuntas',
+      count: resolvedCount,
+      dot: 'bg-emerald-600',
+      desc: 'Bukti fisik terunggah',
+    },
+  ];
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      {/* Pending */}
-      <div className="bg-white p-5 rounded-2xl border border-amber-200 shadow-2xs flex items-center justify-between">
-        <div>
-          <div className="text-[11px] font-bold uppercase tracking-wider text-amber-600">
-            Perlu Verifikasi Cepat
-          </div>
-          <div className="text-3xl font-extrabold text-slate-900 mt-1">{pendingCount}</div>
-          <div className="text-xs text-slate-400 mt-0.5">Laporan baru dari warga</div>
-        </div>
-        <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-          <AlertCircle className="w-6 h-6" />
-        </div>
-      </div>
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+      {METRICS.map((metric) => {
+        const isSelected = activeFilter === metric.id;
+        return (
+          <div
+            key={metric.id}
+            onClick={() => onSelectFilter?.(metric.id)}
+            className={`bg-white p-4 sm:p-5 rounded-2xl border transition-all duration-200 cursor-pointer ${
+              isSelected
+                ? 'border-blue-500 ring-1 ring-blue-500/20 shadow-xs'
+                : 'border-slate-200/80 hover:border-slate-300 hover:shadow-2xs'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${metric.dot} shrink-0`} />
+                <span className="text-xs font-semibold text-slate-600">
+                  {metric.label}
+                </span>
+              </div>
+              <span className="text-[11px] text-slate-400 font-mono">
+                {metric.desc}
+              </span>
+            </div>
 
-      {/* In Progress */}
-      <div className="bg-white p-5 rounded-2xl border border-blue-200 shadow-2xs flex items-center justify-between">
-        <div>
-          <div className="text-[11px] font-bold uppercase tracking-wider text-blue-600">
-            Dalam Pengerjaan Lapangan
+            <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-mono tracking-tight">
+              {metric.count}
+            </div>
           </div>
-          <div className="text-3xl font-extrabold text-slate-900 mt-1">{inProgressCount}</div>
-          <div className="text-xs text-slate-400 mt-0.5">Sedang ditangani dinas</div>
-        </div>
-        <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-          <Clock className="w-6 h-6" />
-        </div>
-      </div>
-
-      {/* Resolved */}
-      <div className="bg-white p-5 rounded-2xl border border-emerald-200 shadow-2xs flex items-center justify-between">
-        <div>
-          <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">
-            Penanganan Tuntas
-          </div>
-          <div className="text-3xl font-extrabold text-slate-900 mt-1">{resolvedCount}</div>
-          <div className="text-xs text-slate-400 mt-0.5">Bukti foto telah terunggah</div>
-        </div>
-        <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-          <CheckCircle2 className="w-6 h-6" />
-        </div>
-      </div>
+        );
+      })}
     </div>
   );
 }

@@ -19,7 +19,7 @@ export default function StatusBadge({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full font-bold border transition-colors ${meta.bg} ${meta.text} ${sizeClasses} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-md font-bold border transition-colors ${meta.bg} ${meta.text} ${sizeClasses} ${className}`}
     >
       {showDot && <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${meta.dot}`} />}
       <span>{meta.label}</span>

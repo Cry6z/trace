@@ -75,44 +75,43 @@ export default function FeaturedReportsSection({
                     fill
                     unoptimized
                     sizes="(max-width: 768px) 100vw, 33vw"
-                    className="object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
+                    className="object-cover group-hover:scale-104 transition-transform duration-300 ease-out"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">
                     Tanpa Foto
                   </div>
                 )}
-                <div className="absolute inset-0 bg-linear-to-t from-slate-900/40 via-transparent to-transparent opacity-60" />
 
-                {/* Badges on Image */}
+                {/* Badges on Image (Category Pill & Status Petak) */}
                 <div className="absolute top-3 left-3">
                   <CategoryBadge category={report.category} />
                 </div>
                 <div className="absolute top-3 right-3">
                   <StatusBadge status={report.status} />
                 </div>
-
-                <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-white text-[11px] font-mono drop-shadow-xs">
-                  <span>{report.trackingCode}</span>
-                  <span className="font-sans text-[10px] bg-slate-900/60 backdrop-blur-xs px-2 py-0.5 rounded-full">
-                    {report.reporterAlias}
-                  </span>
-                </div>
               </div>
 
-              {/* Body Content */}
-              <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3">
+              {/* Body Content - Terstruktur & Minimalist */}
+              <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3.5">
                 <div className="space-y-2">
+                  {/* Meta Strip: Tracking Code & Reporter Alias */}
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 pb-0.5">
+                    <span className="font-mono text-slate-500 font-medium">{report.trackingCode}</span>
+                    <span className="text-slate-400 truncate max-w-36">{report.reporterAlias}</span>
+                  </div>
+
                   <h3 className="font-bold text-sm sm:text-base text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug">
                     {report.title}
                   </h3>
+                  
                   <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
                     {report.description}
                   </p>
                 </div>
 
-                {/* Location & Interaction Strip */}
-                <div className="space-y-3 pt-2">
+                {/* Location & Minimalist Action Strip (Tanpa Card Tambahan di Dalam) */}
+                <div className="space-y-3 pt-1">
                   <div className="flex items-center gap-1.5 text-xs text-slate-500">
                     <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                     <span className="truncate">
@@ -122,17 +121,17 @@ export default function FeaturedReportsSection({
                   </div>
 
                   <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                    {/* Upvote Button with Tactile Bounce */}
+                    {/* Upvote Button Minimalist (Tanpa background card atau border box) */}
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         onUpvote(report.id);
                       }}
-                      className="group/upvote inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 hover:bg-blue-50 hover:text-blue-600 text-slate-600 text-xs font-semibold border border-slate-200 hover:border-blue-200 transition-all duration-150 active:scale-90"
+                      className="group/upvote inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-blue-600 transition-colors py-1 active:scale-95 cursor-pointer"
                       title="Dukung penanganan laporan ini"
                     >
-                      <ThumbsUp className="w-3.5 h-3.5 transition-transform duration-150 group-active/upvote:scale-125" />
+                      <ThumbsUp className="w-3.5 h-3.5 text-slate-400 group-hover/upvote:text-blue-600 transition-colors" />
                       <span>{report.upvotes} Dukungan</span>
                     </button>
 
