@@ -16,7 +16,9 @@ import {
 } from 'lucide-react';
 import { 
   findCitizen, 
+  findCitizenAsync,
   loginCitizenWithPin, 
+  loginCitizenWithPinAsync,
   loginCitizenWithOtp, 
   CitizenAccount,
   syncCitizensFromSupabase
@@ -76,7 +78,7 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
   };
 
   // Handle Kirim OTP WhatsApp
-  const handleRequestOtp = () => {
+  const handleRequestOtp = async () => {
     setErrorMsg('');
     setIsNotRegistered(false);
 
@@ -86,16 +88,17 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
       return;
     }
 
-    const citizen = findCitizen(clean);
-    if (!citizen) {
-      setIsNotRegistered(true);
-      setErrorMsg('Identitas NIK atau No HP belum terdaftar dalam sistem TRACE. Anda harus mendaftar akun terlebih dahulu.');
-      return;
-    }
-
     setIsLoading(true);
 
-    setTimeout(() => {
+    try {
+      const citizen = await findCitizenAsync(clean);
+      if (!citizen) {
+        setIsLoading(false);
+        setIsNotRegistered(true);
+        setErrorMsg('Identitas NIK atau No HP belum terdaftar dalam sistem TRACE. Anda harus mendaftar akun terlebih dahulu.');
+        return;
+      }
+
       const res = requestOtp(citizen.phone);
       setIsLoading(false);
 
@@ -109,7 +112,10 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
       } else {
         setErrorMsg(res.message);
       }
-    }, 500);
+    } catch {
+      setIsLoading(false);
+      setErrorMsg('Gagal memeriksa akun warga. Periksa koneksi internet Anda.');
+    }
   };
 
   // Handle Submit Login
@@ -124,26 +130,21 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
       return;
     }
 
-    // Periksa apakah akun terdaftar (cek lokal & Supabase)
-    let citizen = findCitizen(clean);
-    if (!citizen) {
-      setIsLoading(true);
-      await syncCitizensFromSupabase();
-      citizen = findCitizen(clean);
-      setIsLoading(false);
-    }
-
-    if (!citizen) {
-      setIsNotRegistered(true);
-      setErrorMsg('Identitas NIK atau No HP ini belum terdaftar dalam sistem TRACE.');
-      return;
-    }
-
     setIsLoading(true);
 
-    setTimeout(() => {
+    try {
+      // Periksa apakah akun terdaftar (cek lokal & Supabase live)
+      const citizen = await findCitizenAsync(clean);
+
+      if (!citizen) {
+        setIsLoading(false);
+        setIsNotRegistered(true);
+        setErrorMsg('Identitas NIK atau No HP ini belum terdaftar dalam sistem TRACE. Silakan daftar akun warga terlebih dahulu.');
+        return;
+      }
+
       if (authMethod === 'pin') {
-        const res = loginCitizenWithPin(clean, pin);
+        const res = await loginCitizenWithPinAsync(clean, pin);
         setIsLoading(false);
 
         if (res.success) {
@@ -159,7 +160,7 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
         // Mode OTP
         if (!isOtpSent) {
           setIsLoading(false);
-          handleRequestOtp();
+          await handleRequestOtp();
           return;
         }
 
@@ -176,7 +177,10 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
           setErrorMsg(res.message);
         }
       }
-    }, 500);
+    } catch (err: any) {
+      setIsLoading(false);
+      setErrorMsg(err?.message || 'Terjadi kesalahan sistem saat mencoba masuk. Silakan coba kembali.');
+    }
   };
 
   return (

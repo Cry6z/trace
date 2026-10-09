@@ -413,6 +413,23 @@ export default function CommunityMap({
     });
   }, [filteredReports, activePreviewReport, currentZoom, renderMarkers]);
 
+  // ResizeObserver agar canvas peta tidak pernah terpotong saat resize layout
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+
+    const observer = new ResizeObserver(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    });
+
+    observer.observe(mapContainerRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   return (
     <div
       className={`relative w-full rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-200/90 shadow-xl shadow-slate-200/40 bg-slate-100 ${

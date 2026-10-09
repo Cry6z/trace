@@ -72,6 +72,16 @@ body {
   z-index: 10;
 }
 
+/* Hilangkan kotak putih & border bawaan Leaflet div-icon agar pin transparan rapi */
+.leaflet-div-icon,
+.custom-picker-pin,
+.custom-full-map-marker,
+.custom-centroid-marker,
+.custom-user-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
 /* Filter lembut pada tile OpenStreetMap agar tampil bersih & elegan */
 .leaflet-tile-pane {
   filter: saturate(0.88) contrast(1.02) brightness(1.02);

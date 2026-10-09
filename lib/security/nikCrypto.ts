@@ -10,7 +10,8 @@ const ALGORITHM = 'aes-256-gcm';
  * Digunakan untuk identifikasi duplikasi tanpa menyimpan NIK mentah.
  */
 export function hashNik(nik: string): string {
-  const cleanNik = nik.trim();
+  if (!nik) return '';
+  const cleanNik = nik.replace(/\D/g, '').trim();
   return crypto.createHmac('sha256', NIK_PEPPER).update(cleanNik).digest('hex');
 }
 

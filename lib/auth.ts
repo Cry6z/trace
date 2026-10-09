@@ -51,7 +51,28 @@ const DUMMY_CITIZEN_IDS = new Set([
 const DUMMY_PHONES = new Set(['081234567890', '085273112233', '082198765432']);
 
 /**
- * Mengambil daftar seluruh warga yang terdaftar dalam sistem
+ * Menyimpan atau memperbarui data akun warga ke penyimpanan lokal
+ */
+export function saveCitizenToLocal(citizen: CitizenAccount): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const list = getRegisteredCitizens();
+    const idx = list.findIndex(
+      (c) => c.id === citizen.id || (c.nikHash && c.nikHash === citizen.nikHash) || c.phone === citizen.phone
+    );
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], ...citizen };
+    } else {
+      list.unshift(citizen);
+    }
+    localStorage.setItem(REGISTERED_CITIZENS_KEY, JSON.stringify(list));
+  } catch (err) {
+    console.error('Failed to save citizen locally:', err);
+  }
+}
+
+/**
+ * Mengambil daftar seluruh warga yang terdaftar dalam cache lokal sistem
  */
 export function getRegisteredCitizens(): CitizenAccount[] {
   if (typeof window === 'undefined') return [];
@@ -86,7 +107,7 @@ export async function syncCitizensFromSupabase(): Promise<CitizenAccount[]> {
         .filter((row) => !DUMMY_CITIZEN_IDS.has(row.id) && !DUMMY_PHONES.has(row.phone))
         .map((row) => ({
           id: row.id,
-          nik: row.nik_hash || '1771000000000000',
+          nik: row.nik_masked, // simpan masked untuk tampilan publik yang aman
           nikMasked: row.nik_masked,
           nikHash: row.nik_hash,
           namaLengkap: row.nama_lengkap,
@@ -105,7 +126,10 @@ export async function syncCitizensFromSupabase(): Promise<CitizenAccount[]> {
         const current = getRegisteredCitizens();
         const combined = [...mapped];
         for (const c of current) {
-          if (!combined.some((m) => m.phone === c.phone || m.nik === c.nik)) {
+          const exists = combined.some(
+            (m) => m.id === c.id || (m.nikHash && m.nikHash === c.nikHash) || m.phone === c.phone
+          );
+          if (!exists) {
             combined.push(c);
           }
         }
@@ -121,20 +145,97 @@ export async function syncCitizensFromSupabase(): Promise<CitizenAccount[]> {
 }
 
 /**
- * Mencari warga terdaftar berdasarkan NIK (16 digit) atau Nomor HP
+ * Mencari warga terdaftar di cache lokal berdasarkan NIK (16 digit), Nomor HP, atau ID
  */
 export function findCitizen(identifier: string): CitizenAccount | null {
   if (!identifier) return null;
   const clean = identifier.replace(/\D/g, '').trim();
+  const idMatch = identifier.trim();
+  const inputHash = clean.length === 16 ? hashNik(clean) : '';
   const list = getRegisteredCitizens();
 
   return (
     list.find((c) => {
-      const citizenNik = c.nik.replace(/\D/g, '');
-      const citizenPhone = c.phone.replace(/\D/g, '');
-      return citizenNik === clean || citizenPhone === clean;
+      // 1. Cocokkan ID langsung
+      if (c.id === idMatch) return true;
+      // 2. Cocokkan NIK mentah jika masih ada di memori lokal
+      const storedNikDigits = c.nik ? c.nik.replace(/\D/g, '') : '';
+      if (clean.length === 16 && storedNikDigits === clean) return true;
+      // 3. Cocokkan Hash NIK (kunci pencocokan lintas perangkat yang aman)
+      if (inputHash && c.nikHash === inputHash) return true;
+      // 4. Cocokkan Nomor HP (mendukung format 08xx dan 62xx)
+      const phoneDigits = c.phone ? c.phone.replace(/\D/g, '') : '';
+      if (phoneDigits && clean) {
+        if (phoneDigits === clean) return true;
+        if (clean.startsWith('08') && phoneDigits === '62' + clean.slice(1)) return true;
+        if (clean.startsWith('628') && phoneDigits === '0' + clean.slice(2)) return true;
+      }
+      return false;
     }) || null
   );
+}
+
+/**
+ * Mencari warga terdaftar langsung dari database Supabase (Real-time lintas perangkat)
+ */
+export async function findCitizenAsync(identifier: string): Promise<CitizenAccount | null> {
+  if (!identifier) return null;
+  const clean = identifier.replace(/\D/g, '').trim();
+  const idMatch = identifier.trim();
+
+  // 1. Cek di cache lokal terlebih dahulu
+  const localMatch = findCitizen(identifier);
+  if (localMatch) {
+    return localMatch;
+  }
+
+  // 2. Query langsung ke Supabase
+  try {
+    const isNik = clean.length === 16;
+    let query = supabase.from('citizens').select('*');
+
+    if (isNik) {
+      const hashedNik = hashNik(clean);
+      query = query.or(`nik_hash.eq.${hashedNik},phone.eq.${clean}`);
+    } else if (clean.length >= 8) {
+      const phoneVariants = [clean];
+      if (clean.startsWith('08')) phoneVariants.push('62' + clean.slice(1));
+      if (clean.startsWith('628')) phoneVariants.push('0' + clean.slice(2));
+      query = query.or(`phone.in.(${phoneVariants.join(',')}),id.eq.${idMatch}`);
+    } else {
+      query = query.eq('id', idMatch);
+    }
+
+    const { data, error } = await query.limit(1);
+    if (!error && data && data.length > 0) {
+      const row = data[0];
+      const citizen: CitizenAccount = {
+        id: row.id,
+        nik: isNik ? clean : row.nik_masked,
+        nikMasked: row.nik_masked,
+        nikHash: row.nik_hash,
+        namaLengkap: row.nama_lengkap,
+        phone: row.phone,
+        phoneMasked: row.phone_masked,
+        email: row.email || undefined,
+        pin: row.pin_hash || '123456',
+        kecamatan: row.kecamatan || undefined,
+        kelurahan: row.kelurahan || undefined,
+        alamatKtp: row.alamat_ktp || undefined,
+        isVerified: row.is_verified ?? true,
+        createdAt: row.created_at,
+      };
+
+      saveCitizenToLocal(citizen);
+      return citizen;
+    }
+  } catch (err) {
+    console.error('Error fetching citizen from Supabase:', err);
+  }
+
+  // 3. Fallback: sinkronkan semua akun lalu periksa ulang
+  await syncCitizensFromSupabase();
+  return findCitizen(identifier);
 }
 
 export interface RegisterCitizenInput {
@@ -149,13 +250,13 @@ export interface RegisterCitizenInput {
 }
 
 /**
- * Pendaftaran Akun Warga Baru
+ * Pendaftaran Akun Warga Baru langsung ke Database Supabase
  */
-export function registerCitizen(data: RegisterCitizenInput): {
+export async function registerCitizen(data: RegisterCitizenInput): Promise<{
   success: boolean;
   message: string;
   citizen?: CitizenAccount;
-} {
+}> {
   const cleanNik = data.nik.replace(/\D/g, '');
   const cleanPhone = data.phone.replace(/\D/g, '');
   const cleanPin = data.pin.replace(/\D/g, '');
@@ -177,31 +278,75 @@ export function registerCitizen(data: RegisterCitizenInput): {
     return { success: false, message: 'PIN keamanan harus berjumlah tepat 6 digit angka.' };
   }
 
-  const list = getRegisteredCitizens();
+  const nikHash = hashNik(cleanNik);
 
-  // Cek apakah NIK sudah pernah terdaftar
-  const existingNik = list.find((c) => c.nik.replace(/\D/g, '') === cleanNik);
-  if (existingNik) {
-    return {
-      success: false,
-      message: `NIK ${maskNik(cleanNik)} sudah terdaftar atas nama ${existingNik.namaLengkap}. Silakan masuk menggunakan akun tersebut.`,
-    };
+  // 1. Cek apakah NIK atau No HP sudah terdaftar di Supabase
+  try {
+    const { data: existing, error: checkError } = await supabase
+      .from('citizens')
+      .select('id, nama_lengkap, phone, nik_hash')
+      .or(`phone.eq.${cleanPhone},nik_hash.eq.${nikHash}`);
+
+    if (!checkError && existing && existing.length > 0) {
+      const match = existing[0];
+      if (match.nik_hash === nikHash) {
+        return {
+          success: false,
+          message: `NIK ${maskNik(cleanNik)} sudah terdaftar atas nama ${match.nama_lengkap}. Silakan masuk menggunakan akun tersebut.`,
+        };
+      }
+      if (match.phone === cleanPhone) {
+        return {
+          success: false,
+          message: `Nomor WhatsApp ${maskPhone(cleanPhone)} sudah terdaftar. Silakan gunakan nomor lain atau masuk ke akun yang ada.`,
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('Supabase existence check warning:', err);
   }
 
-  // Cek apakah No HP sudah pernah terdaftar
-  const existingPhone = list.find((c) => c.phone.replace(/\D/g, '') === cleanPhone);
-  if (existingPhone) {
-    return {
-      success: false,
-      message: `Nomor WhatsApp ${maskPhone(cleanPhone)} sudah terdaftar. Silakan gunakan nomor lain atau masuk ke akun yang ada.`,
-    };
+  // 2. Simpan ke database Supabase secara real-time
+  let citizenId = `cit-1771-${Date.now().toString().slice(-4)}`;
+  try {
+    const { data: inserted, error: insertError } = await supabase
+      .from('citizens')
+      .insert({
+        nik_hash: nikHash,
+        nik_masked: maskNik(cleanNik),
+        nama_lengkap: nama,
+        phone: cleanPhone,
+        phone_masked: maskPhone(cleanPhone),
+        email: data.email?.trim() || null,
+        pin_hash: cleanPin,
+        kecamatan: data.kecamatan || null,
+        kelurahan: data.kelurahan || null,
+        alamat_ktp: data.alamatKtp?.trim() || null,
+        is_verified: true,
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('Supabase citizen insert error:', insertError);
+      if (insertError.code === '23505') {
+        return {
+          success: false,
+          message: 'NIK atau Nomor WhatsApp ini sudah terdaftar sebelumnya. Silakan langsung masuk.',
+        };
+      }
+    } else if (inserted && inserted.id) {
+      citizenId = inserted.id;
+    }
+  } catch (err) {
+    console.error('Supabase insert exception:', err);
   }
 
   const newCitizen: CitizenAccount = {
-    id: `cit-1771-${Date.now().toString().slice(-4)}`,
+    id: citizenId,
     nik: cleanNik,
     nikMasked: maskNik(cleanNik),
-    nikHash: hashNik(cleanNik),
+    nikHash: nikHash,
     namaLengkap: nama,
     phone: cleanPhone,
     phoneMasked: maskPhone(cleanPhone),
@@ -214,37 +359,7 @@ export function registerCitizen(data: RegisterCitizenInput): {
     createdAt: new Date().toISOString(),
   };
 
-  list.unshift(newCitizen);
-
-  if (typeof window !== 'undefined') {
-    try {
-      localStorage.setItem(REGISTERED_CITIZENS_KEY, JSON.stringify(list));
-    } catch (err) {
-      console.error('Failed to save registered citizen:', err);
-      return { success: false, message: 'Gagal menyimpan data akun ke penyimpanan lokal.' };
-    }
-  }
-
-  // Sinkronkan akun baru ke database Supabase secara real-time
-  try {
-    supabase.from('citizens').insert({
-      nik_hash: newCitizen.nikHash,
-      nik_masked: newCitizen.nikMasked,
-      nama_lengkap: newCitizen.namaLengkap,
-      phone: newCitizen.phone,
-      phone_masked: newCitizen.phoneMasked,
-      email: newCitizen.email || null,
-      pin_hash: newCitizen.pin,
-      kecamatan: newCitizen.kecamatan || null,
-      kelurahan: newCitizen.kelurahan || null,
-      alamat_ktp: newCitizen.alamatKtp || null,
-      is_verified: true,
-    }).then((res) => {
-      if (res.error) console.warn('Supabase citizen insert warning:', res.error.message);
-    });
-  } catch (err) {
-    console.warn('Supabase async sync citizen error:', err);
-  }
+  saveCitizenToLocal(newCitizen);
 
   // Buat sesi otomatis setelah daftar
   const session: UserSession = {
@@ -268,7 +383,48 @@ export function registerCitizen(data: RegisterCitizenInput): {
 }
 
 /**
- * Login Warga Menggunakan NIK/No HP + PIN Keamanan 6 Digit
+ * Login Warga Menggunakan NIK/No HP + PIN Keamanan (Live Supabase & Async)
+ */
+export async function loginCitizenWithPinAsync(
+  identifier: string,
+  pin: string
+): Promise<{ success: boolean; message: string; session?: UserSession }> {
+  const clean = identifier.replace(/\D/g, '').trim();
+  if (!clean) {
+    return { success: false, message: 'Mohon masukkan NIK atau Nomor WhatsApp Anda.' };
+  }
+
+  const citizen = await findCitizenAsync(identifier);
+  if (!citizen) {
+    return {
+      success: false,
+      message: 'Identitas NIK atau No HP ini belum terdaftar dalam TRACE. Silakan daftar akun warga terlebih dahulu.',
+    };
+  }
+
+  const cleanPin = pin.replace(/\D/g, '').trim();
+  if (cleanPin !== citizen.pin) {
+    return { success: false, message: 'PIN keamanan 6 digit yang Anda masukkan tidak sesuai.' };
+  }
+
+  const session: UserSession = {
+    id: citizen.id,
+    nama: citizen.namaLengkap,
+    nikMasked: citizen.nikMasked,
+    phoneMasked: citizen.phoneMasked,
+    nikHash: citizen.nikHash,
+    kecamatan: citizen.kecamatan,
+    kelurahan: citizen.kelurahan,
+    isLoggedIn: true,
+    loginAt: new Date().toISOString(),
+  };
+
+  setUserSession(session);
+  return { success: true, message: `Selamat datang kembali, ${citizen.namaLengkap}!`, session };
+}
+
+/**
+ * Login Warga Menggunakan NIK/No HP + PIN Keamanan 6 Digit (Synchronous Fallback)
  */
 export function loginCitizenWithPin(
   identifier: string,
@@ -350,7 +506,7 @@ export function loginCitizenWithOtp(
 }
 
 /**
- * Update profil warga terdaftar
+ * Update profil warga terdaftar (Sinkron ke lokal dan Supabase)
  */
 export function updateCitizenProfile(
   id: string,
@@ -360,10 +516,10 @@ export function updateCitizenProfile(
   try {
     const list = getRegisteredCitizens();
     const idx = list.findIndex((c) => c.id === id);
-    if (idx === -1) return false;
-
-    list[idx] = { ...list[idx], ...updates };
-    localStorage.setItem(REGISTERED_CITIZENS_KEY, JSON.stringify(list));
+    if (idx !== -1) {
+      list[idx] = { ...list[idx], ...updates };
+      localStorage.setItem(REGISTERED_CITIZENS_KEY, JSON.stringify(list));
+    }
 
     // Sinkronkan sesi aktif jika sedang login dengan akun ini
     const active = getUserSession();
@@ -373,6 +529,26 @@ export function updateCitizenProfile(
       if (updates.kelurahan) active.kelurahan = updates.kelurahan;
       setUserSession(active);
     }
+
+    // Sinkronkan perubahan ke Supabase
+    const sbUpdates: Record<string, any> = {};
+    if (updates.namaLengkap) sbUpdates.nama_lengkap = updates.namaLengkap;
+    if (updates.pin) sbUpdates.pin_hash = updates.pin;
+    if (updates.kecamatan !== undefined) sbUpdates.kecamatan = updates.kecamatan;
+    if (updates.kelurahan !== undefined) sbUpdates.kelurahan = updates.kelurahan;
+    if (updates.alamatKtp !== undefined) sbUpdates.alamat_ktp = updates.alamatKtp;
+    if (updates.email !== undefined) sbUpdates.email = updates.email;
+
+    if (Object.keys(sbUpdates).length > 0) {
+      supabase
+        .from('citizens')
+        .update(sbUpdates)
+        .eq('id', id)
+        .then((res) => {
+          if (res.error) console.warn('Supabase update citizen warning:', res.error.message);
+        });
+    }
+
     return true;
   } catch {
     return false;

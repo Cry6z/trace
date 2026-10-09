@@ -378,18 +378,35 @@ export default function FullCommunityMap({
     });
   }, [reports, selectedReportId, currentZoom, renderMarkers]);
 
-  // Terbang (flyTo) ke koordinat laporan terpilih jika ada
+  // Terbang (flyTo) ke koordinat laporan terpilih jika ada (Zoom 17 agar titik terurai dari klaster)
   useEffect(() => {
     if (!mapInstanceRef.current || !selectedReportId) return;
 
     const target = reports.find((r) => r.id === selectedReportId);
     if (target) {
       setActivePreviewReport(target);
-      mapInstanceRef.current.flyTo([target.latitude, target.longitude], 15, {
-        duration: 1.0,
+      mapInstanceRef.current.flyTo([target.latitude, target.longitude], 17, {
+        duration: 0.9,
       });
     }
   }, [selectedReportId, reports]);
+
+  // ResizeObserver agar canvas peta tidak pernah terpotong saat layout berganti
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+
+    const observer = new ResizeObserver(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    });
+
+    observer.observe(mapContainerRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   return (
     <div className="relative w-full h-full bg-slate-100">

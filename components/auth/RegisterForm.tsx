@@ -40,7 +40,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -74,8 +74,8 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
 
     setIsLoading(true);
 
-    setTimeout(() => {
-      const result = registerCitizen({
+    try {
+      const result = await registerCitizen({
         namaLengkap,
         nik: cleanNik,
         phone: cleanPhone,
@@ -93,11 +93,14 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
 
         setTimeout(() => {
           router.push(redirectUrl);
-        }, 1200);
+        }, 1000);
       } else {
         setErrorMsg(result.message);
       }
-    }, 600);
+    } catch (err: any) {
+      setIsLoading(false);
+      setErrorMsg(err?.message || 'Terjadi kesalahan sistem saat mendaftarkan akun. Silakan coba kembali.');
+    }
   };
 
   return (

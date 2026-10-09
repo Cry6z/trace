@@ -86,6 +86,7 @@ CREATE TABLE IF NOT EXISTS officers (
   role officer_role NOT NULL DEFAULT 'operator',
   agency TEXT NOT NULL DEFAULT 'Pemerintah Kota Bengkulu',
   phone TEXT,
+  pin TEXT DEFAULT '123456',
   created_at TIMESTAMPTZ DEFAULT TIMEZONE('Asia/Jakarta', NOW())
 );
 
@@ -282,9 +283,21 @@ CREATE POLICY "Citizens can update own account"
   ON citizens FOR UPDATE
   USING (true);
 
+CREATE POLICY "Enable delete citizens"
+  ON citizens FOR DELETE
+  USING (true);
+
 -- Kebijakan Officers:
 CREATE POLICY "Public can view officers list"
   ON officers FOR SELECT
+  USING (true);
+
+CREATE POLICY "Enable insert officers"
+  ON officers FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Enable update officers"
+  ON officers FOR UPDATE
   USING (true);
 
 -- ==============================================================================
