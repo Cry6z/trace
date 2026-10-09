@@ -120,6 +120,8 @@ export default function UserReportCard({
           <img
             src={report.imageUrl}
             alt={report.title}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
             onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
               e.currentTarget.src =

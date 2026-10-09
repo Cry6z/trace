@@ -6,7 +6,7 @@ import PetaHeader from '@/components/peta/PetaHeader';
 import PetaReportList from '@/components/peta/PetaReportList';
 import PetaReportDetail from '@/components/peta/PetaReportDetail';
 import { Report } from '@/lib/types';
-import { getReports, DUMMY_TRACKING_CODES } from '@/lib/services/reportService';
+import { getReports, getCachedReports, DUMMY_TRACKING_CODES } from '@/lib/services/reportService';
 
 export default function FullPetaPage() {
   const [reports, setReports] = useState<Report[]>([]);
@@ -21,6 +21,13 @@ export default function FullPetaPage() {
   // Load real-time reports from Supabase & Local Cache
   useEffect(() => {
     let isMounted = true;
+
+    // Hidrasi instan dari cache (0ms)
+    const cached = getCachedReports();
+    if (cached.length > 0) {
+      setReports(cached);
+    }
+
     const fetchReports = async () => {
       try {
         const dbReports = await getReports();

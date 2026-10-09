@@ -14,7 +14,7 @@ import LogoutConfirmModal from '@/components/dashboard/LogoutConfirmModal';
 import ReportDetailModal from '@/components/ui/ReportDetailModal';
 import UserProfileView from '@/components/dashboard/UserProfileView';
 import { Report } from '@/lib/types';
-import { getReports, DUMMY_TRACKING_CODES } from '@/lib/services/reportService';
+import { getReports, getCachedReports, DUMMY_TRACKING_CODES } from '@/lib/services/reportService';
 import { PlusCircle, Inbox, Lock, ArrowRight, ArrowLeft, ShieldCheck, UserCheck } from 'lucide-react';
 import { useToast } from '@/components/ui/ToastProvider';
 import { 
@@ -31,6 +31,7 @@ export default function UserDashboardPage() {
 
   const [userInfo, setUserInfo] = useState<UserSession | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(true);
+  const [isLoadingReports, setIsLoadingReports] = useState<boolean>(true);
 
   const [activeTab, setActiveTab] = useState<UserDashboardTab>('monitoring');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
@@ -45,54 +46,78 @@ export default function UserDashboardPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // 1. Muat Sesi Autentikasi Pengguna
+  // 1. Muat Sesi Autentikasi Pengguna & Cache Seketika (0ms - Anti Delay)
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const syncAuth = () => {
-        const user = getUserSession();
-        setUserInfo(user);
+      // Periksa sesi lokal seketika (0ms - non-blocking)
+      const user = getUserSession();
+      setUserInfo(user);
+      setIsCheckingAuth(false);
 
-        // Baca query parameter tab jika diarahkan dari menu profil navbar
-        const params = new URLSearchParams(window.location.search);
-        const tabParam = params.get('tab') as UserDashboardTab;
-        if (tabParam && ['monitoring', 'riwayat', 'profil'].includes(tabParam)) {
-          setActiveTab(tabParam);
-        }
-      };
+      // Baca query parameter tab jika diarahkan dari menu profil navbar
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab') as UserDashboardTab;
+      if (tabParam && ['monitoring', 'riwayat', 'profil'].includes(tabParam)) {
+        setActiveTab(tabParam);
+      }
 
-      syncAuth();
+      // Ambil cache laporan seketika agar UI langsung muncul tanpa menunggu network
+      const cached = getCachedReports();
+      let initialMerged = cached;
+      const storedDrafts = localStorage.getItem('trace_user_reports');
+      if (storedDrafts) {
+        try {
+          const local: Report[] = JSON.parse(storedDrafts);
+          const cleanLocal = local.filter((r) => !DUMMY_TRACKING_CODES.has(r.trackingCode) && !DUMMY_TRACKING_CODES.has(r.id));
+          const cacheCodes = new Set(cached.map((r) => r.trackingCode));
+          const freshLocal = cleanLocal.filter((r) => !cacheCodes.has(r.trackingCode));
+          initialMerged = [...freshLocal, ...cached];
+        } catch {}
+      }
+      if (initialMerged.length > 0) {
+        setReports(initialMerged);
+        setIsLoadingReports(false);
+      }
 
-      // Muat data laporan langsung dari Supabase
-      const loadDashboardReports = async () => {
+      // Muat data termutakhir dari Supabase di latar belakang (Stale-While-Revalidate)
+      let isMounted = true;
+      const loadFreshDashboardReports = async () => {
         try {
           const dbReports = await getReports();
-          if (typeof window !== 'undefined') {
-            const storedReports = localStorage.getItem('trace_user_reports');
-            if (storedReports) {
-              try {
-                const local: Report[] = JSON.parse(storedReports);
-                const cleanLocal = local.filter((r) => !DUMMY_TRACKING_CODES.has(r.trackingCode) && !DUMMY_TRACKING_CODES.has(r.id));
-                const dbCodes = new Set(dbReports.map((r) => r.trackingCode));
-                const freshLocal = cleanLocal.filter((r) => !dbCodes.has(r.trackingCode));
-                setReports([...freshLocal, ...dbReports]);
-                return;
-              } catch {}
-            }
+          if (!isMounted) return;
+
+          const stored = localStorage.getItem('trace_user_reports');
+          if (stored) {
+            try {
+              const local: Report[] = JSON.parse(stored);
+              const cleanLocal = local.filter((r) => !DUMMY_TRACKING_CODES.has(r.trackingCode) && !DUMMY_TRACKING_CODES.has(r.id));
+              const dbCodes = new Set(dbReports.map((r) => r.trackingCode));
+              const freshLocal = cleanLocal.filter((r) => !dbCodes.has(r.trackingCode));
+              setReports([...freshLocal, ...dbReports]);
+              return;
+            } catch {}
           }
           setReports(dbReports);
         } catch (err) {
           console.error('Error load dashboard reports:', err);
         } finally {
-          setIsCheckingAuth(false);
+          if (isMounted) {
+            setIsLoadingReports(false);
+          }
         }
       };
 
-      loadDashboardReports();
+      loadFreshDashboardReports();
+
+      const syncAuth = () => {
+        setUserInfo(getUserSession());
+      };
 
       window.addEventListener(AUTH_CHANGE_EVENT, syncAuth);
       window.addEventListener('storage', syncAuth);
 
       return () => {
+        isMounted = false;
         window.removeEventListener(AUTH_CHANGE_EVENT, syncAuth);
         window.removeEventListener('storage', syncAuth);
       };
@@ -103,7 +128,7 @@ export default function UserDashboardPage() {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      const dbReports = await getReports();
+      const dbReports = await getReports({ forceRefresh: true });
       setReports(dbReports);
       toast.success('Status Terkini Dimuat', 'Data pemantauan pengaduan telah diperbarui dari server.');
     } catch (err) {
@@ -301,7 +326,30 @@ export default function UserDashboardPage() {
                   </span>
                 </div>
 
-                {filteredReports.length === 0 ? (
+                {isLoadingReports && reports.length === 0 ? (
+                  <div className="space-y-4 sm:space-y-5">
+                    {[1, 2].map((idx) => (
+                      <div
+                        key={idx}
+                        className="bg-white rounded-3xl p-5 sm:p-7 border border-slate-200/80 shadow-xs space-y-4 animate-pulse"
+                      >
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                          <div className="h-5 w-24 bg-slate-200 rounded-full" />
+                          <div className="h-5 w-20 bg-slate-100 rounded-full" />
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+                          <div className="w-full sm:w-52 md:w-56 h-36 sm:h-38 bg-slate-200 rounded-2xl" />
+                          <div className="flex-1 space-y-2.5">
+                            <div className="h-5 bg-slate-200 rounded-lg w-3/4" />
+                            <div className="h-4 bg-slate-100 rounded-lg w-full" />
+                            <div className="h-4 bg-slate-100 rounded-lg w-2/3" />
+                            <div className="h-4 bg-slate-100 rounded-lg w-1/3 pt-2" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : filteredReports.length === 0 ? (
                   <div className="bg-white rounded-3xl p-8 sm:p-14 text-center border border-slate-200/80 shadow-xs space-y-4 max-w-xl mx-auto">
                     <div className="w-14 sm:w-16 h-14 sm:h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto shadow-xs">
                       <Inbox className="w-7 sm:w-8 h-7 sm:h-8 stroke-[1.8]" />

@@ -14,7 +14,7 @@ import AdminInProgressView from '@/components/admin/views/AdminInProgressView';
 import AdminResolvedView from '@/components/admin/views/AdminResolvedView';
 import AdminMapDistributionView from '@/components/admin/views/AdminMapDistributionView';
 import { Report, ReportStatus } from '@/lib/types';
-import { getReports, updateReportStatusInSupabase, DUMMY_TRACKING_CODES } from '@/lib/services/reportService';
+import { getReports, getCachedReports, updateReportStatusInSupabase, DUMMY_TRACKING_CODES } from '@/lib/services/reportService';
 
 export default function AdminDashboardPage() {
   const [officer, setOfficer] = useState<OfficerProfile | null>(null);
@@ -63,6 +63,13 @@ export default function AdminDashboardPage() {
   // Load real-time reports from Supabase & Local Cache
   useEffect(() => {
     let isMounted = true;
+
+    // Hidrasi instan dari cache (0ms)
+    const cached = getCachedReports();
+    if (cached.length > 0) {
+      setReports(cached);
+    }
+
     const fetchReports = async () => {
       try {
         const dbReports = await getReports();
