@@ -139,7 +139,9 @@ export default function UserProfileView({ user, totalReports }: UserProfileViewP
                   <span className="flex items-center gap-1">
                     <MapPin className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                     <span>
-                      Kec. {user.kecamatan || 'Ratu Samban'}, Kel. {user.kelurahan || 'Lempuing'}
+                      {user.kecamatan
+                        ? `Kec. ${user.kecamatan}${user.kelurahan ? `, Kel. ${user.kelurahan}` : ''}`
+                        : 'Kota Bengkulu'}
                     </span>
                   </span>
                 </div>
@@ -207,13 +209,13 @@ export default function UserProfileView({ user, totalReports }: UserProfileViewP
 
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  Domisili Kota Bengkulu
+                  Domisili Warga
                 </span>
                 <div className="font-bold text-slate-800 text-sm">
                   {user.kecamatan ? `Kec. ${user.kecamatan}` : 'Kota Bengkulu'}
                 </div>
                 <div className="text-[10px] text-slate-500">
-                  Kelurahan: {user.kelurahan || 'Lempuing'}
+                  {user.kelurahan ? `Kelurahan: ${user.kelurahan}` : 'Masyarakat Kota Bengkulu'}
                 </div>
               </div>
             </div>

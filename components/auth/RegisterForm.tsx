@@ -1,13 +1,12 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   User, 
   CreditCard, 
   Phone, 
   Lock, 
-  MapPin, 
   ShieldCheck, 
   AlertCircle, 
   CheckCircle2, 
@@ -17,7 +16,6 @@ import {
   EyeOff
 } from 'lucide-react';
 import { registerCitizen } from '@/lib/auth';
-import { KECAMATAN_BENGKULU } from '@/lib/bengkuluRegions';
 import { useToast } from '@/components/ui/ToastProvider';
 
 interface RegisterFormProps {
@@ -33,9 +31,6 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
   const [namaLengkap, setNamaLengkap] = useState<string>('');
   const [nik, setNik] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
-  const [kecamatan, setKecamatan] = useState<string>('Ratu Samban');
-  const [kelurahan, setKelurahan] = useState<string>('Lempuing');
-  const [alamatKtp, setAlamatKtp] = useState<string>('');
   const [pin, setPin] = useState<string>('');
   const [pinConfirm, setPinConfirm] = useState<string>('');
   const [agreeTerms, setAgreeTerms] = useState<boolean>(true);
@@ -44,21 +39,6 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
-
-  // Daftar kelurahan dinamis berdasarkan kecamatan yang dipilih
-  const availableKelurahan = useMemo(() => {
-    const found = KECAMATAN_BENGKULU.find((k) => k.nama === kecamatan);
-    return found ? found.kelurahan : [];
-  }, [kecamatan]);
-
-  const handleKecamatanChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newKec = e.target.value;
-    setKecamatan(newKec);
-    const found = KECAMATAN_BENGKULU.find((k) => k.nama === newKec);
-    if (found && found.kelurahan.length > 0) {
-      setKelurahan(found.kelurahan[0]);
-    }
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,9 +80,6 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         nik: cleanNik,
         phone: cleanPhone,
         pin: cleanPin,
-        kecamatan,
-        kelurahan,
-        alamatKtp,
       });
 
       setIsLoading(false);
@@ -215,66 +192,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         </div>
       </div>
 
-      {/* 4. Domisili Kota Bengkulu (Kecamatan & Kelurahan) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <label className="block text-xs font-bold text-slate-700">
-            Kecamatan Domisili <span className="text-rose-500">*</span>
-          </label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-              <MapPin className="w-3.5 h-3.5" />
-            </div>
-            <select
-              value={kecamatan}
-              onChange={handleKecamatanChange}
-              disabled={isLoading || isSuccess}
-              className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 disabled:bg-slate-50 cursor-pointer"
-            >
-              {KECAMATAN_BENGKULU.map((k) => (
-                <option key={k.nama} value={k.nama}>
-                  Kec. {k.nama}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="block text-xs font-bold text-slate-700">
-            Kelurahan <span className="text-rose-500">*</span>
-          </label>
-          <select
-            value={kelurahan}
-            onChange={(e) => setKelurahan(e.target.value)}
-            disabled={isLoading || isSuccess}
-            className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 disabled:bg-slate-50 cursor-pointer"
-          >
-            {availableKelurahan.map((kel) => (
-              <option key={kel} value={kel}>
-                Kel. {kel}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* 5. Alamat Singkat KTP */}
-      <div className="space-y-1.5">
-        <label className="block text-xs font-bold text-slate-700">
-          Alamat Jalan / RT / RW (Opsional)
-        </label>
-        <input
-          type="text"
-          value={alamatKtp}
-          onChange={(e) => setAlamatKtp(e.target.value)}
-          placeholder="Contoh: Jl. Pariwisata RT 04 RW 02"
-          disabled={isLoading || isSuccess}
-          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 disabled:bg-slate-50"
-        />
-      </div>
-
-      {/* 6. PIN Keamanan 6 Digit */}
+      {/* 4. PIN Keamanan 6 Digit */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">

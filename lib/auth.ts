@@ -13,8 +13,8 @@ export interface CitizenAccount {
   phoneMasked: string; // misal: 0812****7890
   email?: string;
   pin: string; // 6 digit PIN pengaman akun
-  kecamatan: string; // Domisili Bengkulu
-  kelurahan: string;
+  kecamatan?: string; // Domisili Bengkulu (opsional)
+  kelurahan?: string;
   alamatKtp?: string;
   isVerified: boolean;
   createdAt: string;
@@ -138,8 +138,8 @@ export interface RegisterCitizenInput {
   phone: string;
   email?: string;
   pin: string;
-  kecamatan: string;
-  kelurahan: string;
+  kecamatan?: string;
+  kelurahan?: string;
   alamatKtp?: string;
 }
 
@@ -172,10 +172,6 @@ export function registerCitizen(data: RegisterCitizenInput): {
     return { success: false, message: 'PIN keamanan harus berjumlah tepat 6 digit angka.' };
   }
 
-  if (!data.kecamatan) {
-    return { success: false, message: 'Silakan pilih kecamatan domisili Kota Bengkulu.' };
-  }
-
   const list = getRegisteredCitizens();
 
   // Cek apakah NIK sudah pernah terdaftar
@@ -206,9 +202,9 @@ export function registerCitizen(data: RegisterCitizenInput): {
     phoneMasked: maskPhone(cleanPhone),
     email: data.email?.trim() || undefined,
     pin: cleanPin,
-    kecamatan: data.kecamatan,
-    kelurahan: data.kelurahan || 'Lempuing',
-    alamatKtp: data.alamatKtp?.trim() || `Kecamatan ${data.kecamatan}`,
+    kecamatan: data.kecamatan || undefined,
+    kelurahan: data.kelurahan || undefined,
+    alamatKtp: data.alamatKtp?.trim() || undefined,
     isVerified: true,
     createdAt: new Date().toISOString(),
   };

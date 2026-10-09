@@ -15,7 +15,7 @@ import ReportDetailModal from '@/components/ui/ReportDetailModal';
 import UserProfileView from '@/components/dashboard/UserProfileView';
 import { INITIAL_REPORTS } from '@/lib/mockData';
 import { Report } from '@/lib/types';
-import { PlusCircle, Inbox, Lock, ArrowRight, ShieldCheck, UserCheck } from 'lucide-react';
+import { PlusCircle, Inbox, Lock, ArrowRight, ArrowLeft, ShieldCheck, UserCheck } from 'lucide-react';
 import { useToast } from '@/components/ui/ToastProvider';
 import { 
   getUserSession, 
@@ -181,6 +181,17 @@ export default function UserDashboardPage() {
   if (!userInfo) {
     return (
       <div className="min-h-screen bg-slate-50/80 flex flex-col justify-center items-center p-4 sm:p-6 lg:p-8 antialiased">
+        {/* Navigasi Balik ke Landing Page di atas kartu */}
+        <div className="w-full max-w-md mb-3 flex items-center justify-start">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-blue-600 transition-colors group"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <span>Kembali ke Landing Page</span>
+          </Link>
+        </div>
+
         <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 lg:p-9 border border-slate-200/80 shadow-xl space-y-6 text-center animate-in zoom-in-95 duration-200">
           {/* Icon Gembok & Header */}
           <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center mx-auto shadow-xs">
@@ -205,7 +216,7 @@ export default function UserDashboardPage() {
           </div>
 
           {/* Tombol Aksi */}
-          <div className="space-y-3 pt-2">
+          <div className="space-y-2.5 pt-2">
             <Link
               href="/masuk"
               className="w-full min-h-12 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-semibold text-xs sm:text-sm shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 focus-visible:outline-2 focus-visible:outline-blue-600"
@@ -224,11 +235,21 @@ export default function UserDashboardPage() {
             </button>
 
             <Link
-              href="/peta"
-              className="inline-block text-xs text-slate-400 hover:text-slate-700 font-medium transition-colors pt-2"
+              href="/"
+              className="w-full min-h-11.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-700 hover:text-slate-900 font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
-              Kembali ke Peta Komunitas Publik &rarr;
+              <ArrowLeft className="w-4 h-4 text-slate-500" />
+              <span>Kembali ke Landing Page</span>
             </Link>
+
+            <div className="pt-1.5">
+              <Link
+                href="/peta"
+                className="inline-block text-xs text-slate-400 hover:text-slate-700 font-medium transition-colors"
+              >
+                Kembali ke Peta Komunitas Publik &rarr;
+              </Link>
+            </div>
           </div>
         </div>
       </div>
