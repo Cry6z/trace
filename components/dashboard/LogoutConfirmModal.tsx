@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { LogOut, X, AlertTriangle, Loader2 } from 'lucide-react';
 
 interface LogoutConfirmModalProps {
@@ -18,44 +19,69 @@ export default function LogoutConfirmModal({
   userName = 'Warga',
   isLoading = false,
 }: LogoutConfirmModalProps) {
-  // Tutup dengan tombol Escape & amankan overflow body
+  const [mounted, setMounted] = useState<boolean>(false);
+
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Tutup dengan tombol Escape & amankan overflow body serta html
+  useEffect(() => {
+    if (!isOpen) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen && !isLoading) {
+      if (e.key === 'Escape' && !isLoading) {
         onClose();
       }
     };
 
-    if (isOpen) {
-      if (typeof document !== 'undefined') {
-        document.body.style.overflow = 'hidden';
-      }
-      window.addEventListener('keydown', handleKeyDown);
-    }
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      if (typeof document !== 'undefined') {
-        document.body.style.overflow = '';
-      }
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose, isLoading]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
+  if (typeof document === 'undefined' || !document.body) return null;
 
-  return (
+  return createPortal(
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="logout-modal-title"
-      className="fixed inset-0 z-90 flex items-center justify-center p-4 sm:p-6 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-y-auto modal-scroll-area pointer-events-auto"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100vw',
+        height: '100dvh',
+        zIndex: 9999,
+      }}
       onClick={() => {
         if (!isLoading) onClose();
       }}
     >
+      {/* Backdrop Gelap & Blur */}
       <div
+        className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm modal-backdrop-animate cursor-pointer"
+        aria-hidden="true"
+      />
+
+      {/* Card Dialog Konfirmasi Logout - Selalu Presisi di Tengah Layar */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="logout-modal-title"
+        className="relative z-10 w-full max-w-md my-auto bg-white rounded-3xl shadow-2xl border border-slate-200/90 p-6 sm:p-8 space-y-5 sm:space-y-6 modal-spring-animate max-h-[90dvh] overflow-y-auto modal-scroll-area"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md max-h-[90dvh] overflow-y-auto bg-white rounded-3xl shadow-2xl border border-slate-200/80 p-6 sm:p-8 space-y-5 sm:space-y-6 animate-in zoom-in-95 duration-200"
       >
         {/* Header Icon & Close Button */}
         <div className="flex items-start justify-between">
@@ -124,6 +150,7 @@ export default function LogoutConfirmModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

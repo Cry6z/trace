@@ -144,6 +144,7 @@ export default function UserDashboardPage() {
     setIsLoggingOut(true);
     if (typeof document !== 'undefined') {
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     }
     logoutUser();
     setIsLogoutModalOpen(false);
